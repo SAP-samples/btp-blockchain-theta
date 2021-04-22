@@ -1,0 +1,148 @@
+## Generated mta.yaml based on yo sap-partner-eng version 0.3.11
+## appName = theta
+## language=nodejs; multiTenant=false
+## approuter=theta-app
+_schema-version: '3.1'
+ID: theta
+version: 0.0.1
+description: MTA Theta Sample with Off-Chain Micropayment Support
+parameters:
+   enable-parallel-deployments: true
+  
+  
+build-parameters:
+  before-all:
+   - builder: custom
+     commands:
+      - echo "No Custom Build"
+      #- npm install
+      #- npx -p @sap/cds-dk cds build
+
+modules:
+
+### New Modules Here ###
+
+ - name: theta-privatenet
+   type: custom
+   build-parameters:
+      no-source: true
+   parameters:
+      memory: 2G
+      disk-quota: 4G
+      health-check-type: none
+      docker:
+         image: alunde/theta_ubuntu:latest
+
+# cf push theta-trustee -p trustee -n theta-trustee -d cfapps.us21.hana.ondemand.com -k 512M -m 256M
+ - name: theta-trustee
+   type: nodejs
+   path: trustee
+   build-parameters:
+      ignore: ["node_modules/"]
+   parameters:
+      memory: 256M
+      disk-quota: 512M
+      #host: ${org}-${space}-theta-trustee
+      #domain: cfapps.us21.hana.ondemand.com
+   provides:
+    - name: theta_trustee_api
+      properties:
+         url: ${default-url}
+   requires:
+    - name: theta-uaa
+    - name: theta-cred
+
+# cf push theta-app -p app -n theta-app -d cfapps.us21.hana.ondemand.com -k 256M -m 256M
+ - name: theta-app
+   type: html5
+   path: app
+   build-parameters:
+      # Don't package the dependencies if you're running into EINTEGRITY issues
+      ignore: ["default-env.json","package-lock.json", "node_modules/"]
+      # Suppress the calling of npm install by listing no commands
+      builder: custom
+      commands: []
+   parameters:
+      #host: ${org}-${space}-theta-app
+      #domain: cfapps.us21.hana.ondemand.com
+      #routes:
+      #  - route: theta-app-${space}-${app-name}.${default-domain}
+      disk-quota: 256M
+      memory: 256M
+   provides:
+    - name: Router_api
+      properties:
+         url: ${default-url}
+         application: ${app-name}
+# CDS-MTX
+   requires:
+   # cf bind-service theta-app THETA_UAA
+    - name: theta-uaa
+   ### New Destinations Here ###
+    - name: theta_trustee_api
+      group: destinations
+      properties:
+         name: theta_trustee_be
+         url: ~{url}
+         forwardAuthToken: true
+
+resources:
+
+# cf create-service xsuaa application THETA_UAA -c ./cds-security.json
+ - name: theta-uaa
+   type: org.cloudfoundry.managed-service
+   requires:
+    - name: Router_api
+   properties:
+      XSAPPNAME: ${xsuaa-app}
+   parameters:
+      # Re-run the following command after changing any @(requires: []) definitions in srv/*.cds
+      # Run this from the root of the project and uncomment the path:
+      # cds compile srv/ --to xsuaa,json > cds-security.json
+      #path: ./cds-security.json
+      # The combination of path: and config.scopes: Doesn't seem work.  Use one or the other.
+      # cds compile srv/ --to xsuaa,yaml and make sure the config: below matches
+      #path: ./cds-security.json
+      #path: ./xs-security.json
+      service: xsuaa
+      service-plan: application
+      service-name: THETA_UAA
+      xsuaa-app: ${space}-~{Router_api/application}
+      # Define within config what used to be in the xs-security.json file.  path: now pulls in cds scopes/role templates
+      # Convert with https://www.json2yaml.com/
+      # https://github.wdf.sap.corp/pages/cap/guides/authorization#role-assignments-with-xsuaa
+      config:
+         xsappname: ${xsuaa-app}
+         ### tenant-mode
+         tenant-mode: dedicated
+         description: Security profile of the theta application
+         scopes:
+          - name: "$XSAPPNAME.Callback"
+            description: With this scope set, the callbacks for tenant onboarding, offboarding and getDependencies can be called.
+            grant-as-authority-to-apps: 
+             - "$XSAPPNAME(application,sap-provisioning,tenant-onboarding)"
+          - name: "$XSAPPNAME.Administrator"
+            description: Administrate the application
+          - name: "$XSAPPNAME.User"
+            description: Use the application
+         role-templates:
+          - name: Administrator
+            description: Administrator
+            scope-references:
+             - "$XSAPPNAME.Administrator"
+          - name: User
+            description: User
+            scope-references:
+             - "$XSAPPNAME.User"
+         oauth2-configuration:
+            redirect-uris: 
+             - "http*://*.cfapps.us21.hana.ondemand.com/**"
+
+ - name: theta-cred
+   type: org.cloudfoundry.managed-service
+   parameters:
+      service: credstore
+      service-plan: standard
+      service-name: THETA_CRED
+
+### New Resources Here ###

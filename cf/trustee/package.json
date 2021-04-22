@@ -1,0 +1,21 @@
+{
+  "dependencies": {
+    "@sap/hdbext": "latest",
+    "@sap/xsenv": "latest",
+    "@sap/xssec": "latest",
+    "body-parser": "latest",
+    "express": "~4.16.0",
+    "nodemon": "latest",
+    "passport": "^0.4.0",
+    "stringify-object": "latest"
+  },
+  "description": "my description",
+  "devDependencies": {},
+  "files": [],
+  "main": "server.js",
+  "name": "nodejs",
+  "scripts": {
+    "start": "nodemon server.js"
+  },
+  "version": "1.0.0"
+}
