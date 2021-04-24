@@ -25,7 +25,7 @@ RUN \
 RUN \
   apt-get install -y software-properties-common \
   && apt-get install -y byobu curl git htop man unzip vim wget jq bzr lsof \
-  && apt-get install -y screen tmux \
+  && apt-get install -y sudo screen tmux \
   && echo "..."
 
 #RUN \
@@ -48,11 +48,9 @@ RUN \
   && echo 'export PATH=$PATH:$GOROOT/bin:$GOPATH/bin' >> ~/.bashrc \
   && echo 'export THETA_HOME=$GOPATH/src/github.com/thetatoken/theta' >> ~/.bashrc \
   && echo 'export GO111MODULE=on' >> ~/.bashrc \
-  && echo 'echo "Build Theta with the following."' >> ~/.bashrc \
-  && echo 'echo "cd \$THETA_HOME ; make install"' >> ~/.bashrc \
   && echo 'echo ""' >> ~/.bashrc \
-  && echo 'echo "Start the Theta Private Net."' >> ~/.bashrc \
-  && echo 'echo "start_theta.sh"' >> ~/.bashrc \
+  && echo 'echo ""' >> ~/.bashrc \
+  && echo 'echo "Theta Private Net is starting..."' >> ~/.bashrc \
   && echo "..."
 
 RUN \

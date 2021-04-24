@@ -40,3 +40,10 @@ cf restart theta.dkr
 cf ssh theta.dkr
 ```
 
+## THETA [Node Config Docs](https://github.com/thetatoken/theta-mainnet-integration-guide/blob/master/docs/config.md)
+```
+docker build -t alunde/theta_ubuntu:latest .
+docker run -ti -p 16888:16888 alunde/theta_ubuntu:latest
+screen -ls
+docker push alunde/theta_ubuntu:latest
+```
