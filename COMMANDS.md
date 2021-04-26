@@ -203,3 +203,10 @@ thetacli query tx --hash=0x7cf3ad156e46bc98e4821e3683ba94b9f68bfb788bd6acc1bb502
     }
   ]
 }
+
+cf api https://api.cf.us21.hana.ondemand.com
+cf login -u andrew.lunde@sap.com
+cf ssh theta-privatenet -L 16888:localhost:16888
+screen -x theta
+
+thetacli key list

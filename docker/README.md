@@ -46,4 +46,20 @@ docker build -t alunde/theta_ubuntu:latest .
 docker run -ti -p 16888:16888 alunde/theta_ubuntu:latest
 screen -ls
 docker push alunde/theta_ubuntu:latest
+cf ssh theta-privatenet -L 16888:localhost:16888
+```
+
+[https://github.com/ethereum/solidity](https://github.com/ethereum/solidity)
+```
+hello.sol
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.6.0 <0.9.0;
+
+contract HelloWorld {
+    function helloWorld() external pure returns (string memory) {
+        return "Hello, World!";
+    }
+}
+
+solcjs --bin --base-path . ./hello.sol
 ```
