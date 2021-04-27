@@ -2,6 +2,7 @@
 "use strict";
 require('isomorphic-fetch');
 const BigNumber = require('bignumber.js');
+// node_modules/@thetalabs/theta-js/docs
 const thetajs = require('@thetalabs/theta-js');
 const Wallet = thetajs.Wallet;
 const {HttpProvider} = thetajs.providers;
@@ -128,6 +129,25 @@ async function doMain() {
 
         account2 = await provider.getAccount(address2);
         console.log("after  account2:" + JSON.stringify(account2.coins.thetawei,null,2));
+
+        //const rwallet = Wallet.createRandom();
+        //console.log("rwallet" + JSON.stringify(rwallet,null,2));
+
+        //Test Wallet created at https://wallet.thetatoken.org/create
+        // Details in the wallet folder
+        
+        const phrase = 'push drip galaxy range bullet rug update airport buzz october bubble stem';
+        const nmwallet = thetajs.Wallet.fromMnemonic(phrase);
+        console.log("nmwallet" + JSON.stringify(nmwallet,null,2));
+
+        const privKey = '0x784ddc9e534dc0a954784efb3540e521f9663f78910791622f78b1ee72ae3fae';
+        const pkwallet = new Wallet(privKey);
+        console.log("pkwallet" + JSON.stringify(pkwallet,null,2));
+
+        const json = '{"version":3,"id":"0e9c100a-10e6-4c82-8203-e1d887e77b26","address":"94284c201b6dff344e086b2878b8fd0cf8b9ed28","crypto":{"ciphertext":"8a38b6b0c5261b5cadca023d2e99d3313e764c8605ab2d555808bb0f79b5991c","cipherparams":{"iv":"9500790f98a261a3c29d75f3104a0855"},"cipher":"aes-128-ctr","kdf":"scrypt","kdfparams":{"dklen":32,"salt":"712c8365f76d0ac0547b2b9d8174d40ca8b88799b4cbe8d9e647b70ed2acf1b2","n":8192,"r":8,"p":1},"mac":"94133b1d449dd16e08e6098086392b30195734299bc0c8c773042b2b8ed9c952"}}';
+        const password = "qwertyuiop";
+        const kswallet = Wallet.fromEncryptedJson(json, password);
+        console.log("kswallet" + JSON.stringify(kswallet,null,2));
 
         return console.log("Batch Finished.");
     } catch(e) {
