@@ -210,3 +210,71 @@ cf ssh theta-privatenet -L 16888:localhost:16888
 screen -x theta
 
 thetacli key list
+
+qwertyuiop
+
+## [GetVersion](https://github.com/andrewlunde/theta-mainnet-integration-guide/blob/master/docs/api.md#getversion)
+```
+curl -X POST -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"theta.GetVersion","params":[],"id":1}' http://localhost:16888/rpc | jq .
+```
+
+## [GetStatus](https://github.com/andrewlunde/theta-mainnet-integration-guide/blob/master/docs/api.md#getstatus)
+```
+curl -X POST -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"theta.GetStatus","params":[],"id":1}' http://localhost:16888/rpc | jq .
+```
+
+## [GetAccount](https://github.com/andrewlunde/theta-mainnet-integration-guide/blob/master/docs/api.md#getaccount)
+```
+curl -X POST -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"theta.GetAccount","params":[{"address":"0x2E833968E5bB786Ae419c4d13189fB081Cc43bab"}],"id":1}' http://localhost:16888/rpc | jq .
+```
+
+## [GetBlock](https://github.com/andrewlunde/theta-mainnet-integration-guide/blob/master/docs/api.md#getblock)
+```
+curl -X POST -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"theta.GetBlock","params":[{"hash":"0x9f1e77b08c9fa8984096a735d0aae6b0e43aee297e42c54ce36334103ddd67a7"}],"id":1}' http://localhost:16888/rpc | jq .
+```
+
+## [GetBlockByHeight](https://github.com/andrewlunde/theta-mainnet-integration-guide/blob/master/docs/api.md#getblockbyheight)
+```
+curl -X POST -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"theta.GetBlockByHeight","params":[{"height":"3"}],"id":1}' http://localhost:16888/rpc | jq .
+```
+
+## [GetTransaction](https://github.com/andrewlunde/theta-mainnet-integration-guide/blob/master/docs/api.md#gettransaction)
+```
+curl -X POST -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"theta.GetTransaction","params":[{"hash":"0xf3cc94af7a1520b384999ad106ade9738b6cde66e2377ceab37067329d7173a0"}],"id":1}' http://localhost:16888/rpc | jq .
+```
+
+## [GetPendingTransactions](https://github.com/andrewlunde/theta-mainnet-integration-guide/blob/master/docs/api.md#getpendingtransactions)
+```
+curl -X POST -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"theta.GetPendingTransactions","params":[],"id":1}' http://localhost:16888/rpc | jq .
+```
+
+## [BroadcastRawTransaction](https://github.com/andrewlunde/theta-mainnet-integration-guide/blob/master/docs/api.md#broadcastrawtransaction)
+```
+curl -X POST -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"theta.BroadcastRawTransaction","params":[{"tx_bytes":"02f8a4c78085e8d4a51000f86ff86d942e833968e5bb786ae419c4d13189fb081cc43babd3888ac7230489e800008901158e46f1e875100015b841c2daae6cab92e37308763664fcbe93d90219df5a3520853a9713e70e734b11f27a43db6b77da4f885213b45a294c2b4c74dc9a018d35ba93e5b9297876a293c700eae9949f1233798e905e173560071255140b4a8abd3ec6d3888ac7230489e800008901158e460913d00000"}],"id":1}' http://localhost:16888/rpc } | jq .
+```
+
+```
+thetacli daemon start
+```
+
+## [ListKeys](https://github.com/andrewlunde/theta-mainnet-integration-guide/blob/master/docs/api.md#listkeys)
+```
+curl -X POST -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"thetacli.ListKeys","params":[],"id":1}' http://localhost:16889/rpc | jq .
+```
+
+## [IsKeyUnlocked](https://github.com/andrewlunde/theta-mainnet-integration-guide/blob/master/docs/api.md#iskeyunlocked)
+```
+curl -X POST -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"thetacli.IsKeyUnlocked","params":[{"address":"0x2E833968E5bB786Ae419c4d13189fB081Cc43bab"}],"id":1}' http://localhost:16889/rpc | jq .
+```
+
+## [UnlockKey](https://github.com/andrewlunde/theta-mainnet-integration-guide/blob/master/docs/api.md#unlockkey)
+```
+curl -X POST -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"thetacli.UnlockKey","params":[{"address":"0x2E833968E5bB786Ae419c4d13189fB081Cc43bab", "password":"qwertyuiop"}],"id":1}' http://localhost:16889/rpc | jq .
+```
+
+## [Send](https://github.com/andrewlunde/theta-mainnet-integration-guide/blob/master/docs/api.md#send)
+```
+curl -X POST -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"thetacli.Send","params":[{"chain_id":"privatenet", "from":"0x2E833968E5bB786Ae419c4d13189fB081Cc43bab", "to":"0xA47B89c94a50C32CEACE9cF64340C4Dce6E5EcC6", "thetawei":"99000000000000000000", "tfuelwei":"88000000000000000000", "fee":"1000000000000", "sequence":"7", "async":true}],"id":1}' http://localhost:16889/rpc | jq .
+
+curl -X POST -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"thetacli.Send","params":[{"chain_id":"privatenet", "from":"0x2E833968E5bB786Ae419c4d13189fB081Cc43bab", "to":"0xA47B89c94a50C32CEACE9cF64340C4Dce6E5EcC6", "thetawei":"99000000000000000000", "tfuelwei":"88000000000000000000", "fee":"1000000000000", "sequence":"8", "async":false}],"id":1}' http://localhost:16889/rpc | jq .
+```
