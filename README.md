@@ -20,28 +20,25 @@ This sample is referred to in an upcoming blog post.: [Blog Post](https://people
 >  **Note:**  These instructions assume you are using a Linux or MacOS system or Business Application Studio(BAS).  If you are on Windows, substitute "/" for "\\" in the included commands.
 
 ```
-mkdir -p /home/user/default-plugins
-cd /home/user/default-plugins
-curl -LO https://open-vsx.org/api/sap-partner-eng/sap-bas-extras/0.0.19/file/sap-partner-eng.sap-bas-extras-0.0.19.vsix
-echo "Stop/Start this DevSpace to load the extensions."
 ```
 
 
 ## Limitations
 
-Limitations here.
+This example contains no known limitations.
 
 ## Known Issues
 
-This example contains no known issues.
+There are no known issues to this sample application. If you encounter any issues, please reach out to us through the details highlighted in the How to obtain support section
 
 ## How to obtain support
 
-This project is provided "as-is" with no expectation for major changes or support.
+In case of an issue please create an issue on Github.
+Please follow the steps mentioned [here](https://help.github.com/articles/creating-an-issue/) to create an Issue.
 
 ## To-Do (upcoming changes)
 
-To-do here.
+No new features are planned at this point.
 
 ## License
 Copyright (c) 2021 SAP SE or an SAP affiliate company. All rights reserved. This project is licensed under the Apache Software License, version 2.0 except as noted otherwise in the [LICENSE file](LICENSES/Apache-2.0.txt).
