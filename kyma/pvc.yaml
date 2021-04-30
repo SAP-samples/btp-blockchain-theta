@@ -1,9 +1,9 @@
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: theta-data
+  name: mssql-data
   labels:
-    app: theta
+    app: mssql
 spec:
   accessModes:
     - ReadWriteOnce

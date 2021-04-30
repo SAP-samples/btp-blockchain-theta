@@ -6,6 +6,9 @@
 mkdir -p /root/go/src/github.com/thetatoken/theta
 git clone --branch release https://github.com/thetatoken/theta-protocol-ledger.git /root/go/src/github.com/thetatoken/theta
 cp -r /root/go/src/github.com/thetatoken/theta/integration/privatenet /root/go/src/github.com/thetatoken/privatenet
+# https://github.com/thetatoken/theta-mainnet-integration-guide/blob/master/docs/config.md
+# Override default port 16888
+echo '  port: 8080'  >> /root/go/src/github.com/thetatoken/privatenet/node/config.yaml
 echo 'log:' >> /root/go/src/github.com/thetatoken/privatenet/node/config.yaml
 echo '  levels: "*:info"'  >> /root/go/src/github.com/thetatoken/privatenet/node/config.yaml
 mkdir -p /root/.thetacli

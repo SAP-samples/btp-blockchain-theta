@@ -32,6 +32,10 @@ modules:
       health-check-type: none
       docker:
          image: alunde/theta_ubuntu:latest
+   provides:
+    - name: theta_privatenet_api
+      properties:
+         url: ${default-url}
 
 # cf push theta-trustee -p trustee -n theta-trustee -d cfapps.us21.hana.ondemand.com -k 512M -m 256M
  - name: theta-trustee
@@ -51,6 +55,12 @@ modules:
    requires:
     - name: theta-uaa
     - name: theta-cred
+    - name: theta_privatenet_api
+      group: destinations
+      properties:
+         name: theta_privatenet_be
+         url: ~{url}
+         forwardAuthToken: true
 
 # cf push theta-app -p app -n theta-app -d cfapps.us21.hana.ondemand.com -k 256M -m 256M
  - name: theta-app

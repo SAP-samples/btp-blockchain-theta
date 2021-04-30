@@ -31,7 +31,7 @@ cd /Users/i830671/git/btp-blockchain-theta/docker
 docker build --no-cache -t alunde/theta_ubuntu:latest .
 docker build -t alunde/theta_ubuntu:latest .
 echo "docker run -ti -p 12000:12000 -p 16888:16888 alunde/theta_ubuntu:latest"
-echo "docker run -ti -p 16888:16888 alunde/theta_ubuntu:latest"
+echo "docker run -ti -p 16888:8080 alunde/theta_ubuntu:latest"
 docker push alunde/theta_ubuntu:latest
 cf delete theta.dkr -f -r
 cf push theta.dkr --docker-image alunde/theta_ubuntu:latest -m 1024M -k 2G -n theta -d cfapps.us21.hana.ondemand.com -u none

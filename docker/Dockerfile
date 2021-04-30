@@ -56,7 +56,7 @@ RUN \
 RUN \
   wget https://dl.google.com/go/go1.13.15.linux-amd64.tar.gz \
   && tar -C /usr/local -xzf go1.13.15.linux-amd64.tar.gz \
-  && echo "..."
+  && echo "...entrypoint..."
 
 # Set environment variables.
 ENV HOME /root
@@ -67,9 +67,11 @@ WORKDIR /root
 COPY entrypoint.sh /usr/local/bin/
 COPY start_theta.sh /usr/local/bin/
 
-EXPOSE 16888
+# EXPOSE 16888
+EXPOSE 8080
 
 # Define default command.
 #CMD ["bash"]
 # Start the entrypoint script upon docker run
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+#ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD /bin/bash /usr/local/bin/entrypoint.sh

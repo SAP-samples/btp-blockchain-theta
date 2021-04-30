@@ -32,33 +32,113 @@ const PrivateKeyUser1 = "<USER1_PRIVATE_KEY>";
 const PrivateKeyUser2 = "<USER2_PRIVATE_KEY>";
 
 const address = "0x2E833968E5bB786Ae419c4d13189fB081Cc43bab";
+// 93a90ea508331dfdf27fb79757d4250b4e84954927ba0073cd67454ac432c737
 const address2 = "0x0d2fD67d573c8ecB4161510fc00754d64B401F86";
+// 931f84b1891be0b745875ecc9f929d5252c3fdbfbaa4a40810089b44158b02c1
 
-const services = xsenv.getServices({
-    uaa: { tag: 'xsuaa' },
-    credstore: { tag: 'credstore' }
-});
-  
-//const binding = JSON.parse(process.env.VCAP_SERVICES).credstore[0].credentials;
-const binding = services.credstore;
+const mnaddress = "0x2E833968E5bB786Ae419c4d13189fB081Cc43bab";
+// 0xabcdefxxxxxxx
+
+var binding = null;
+
+try {
+	xsenv.loadEnv();
+	const services = xsenv.getServices({
+		uaa: { tag: 'xsuaa' },
+		credstore: { tag: 'credstore' }
+	});
+	//binding = JSON.parse(process.env.VCAP_SERVICES).credstore[0].credentials;
+	binding = services.credstore;
+} catch (e) {
+	console.error(e);
+	console.log("Make sure deployed or default-env.json available.")
+	console.log("cf de theta-trustee");
+}
 
 var privkey = null;
+var privkey2 = null;
 
-const provider = new thetajs.providers.HttpProvider('privatenet', 'http://localhost:16888/rpc'); // Works
+// Run this to test locally and enable thetacli
+// cf enable-ssh theta-privatenet
+// cf restart theta-privetenet
+// cf ssh theta-privatenet -L 16888:localhost:8080
+// thetacli query status | jq .
+//const provider = new thetajs.providers.HttpProvider('privatenet', 'http://localhost:16888/rpc'); // Works
+
+// curl -X POST -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"theta.GetStatus","params":[],"id":1}' https://partner-prova-dev-theta-privatenet.cfapps.us21.hana.ondemand.com/rpc | jq .
+var privateNetURL = "https://partner-prova-dev-theta-privatenet.cfapps.us21.hana.ondemand.com";
+// Run this to inject the ENV like when app is deployed to CF
+// cf copyenv theta-trustee | source /dev/stdin
+// export destinations='[{"forwardAuthToken":true,"name":"theta_privatenet_be","url":"https://partner-prova-dev-theta-privatenet.cfapps.us21.hana.ondemand.com"}]'
+const destinations = JSON.parse(process.env.destinations);
+destinations.forEach(destination => {
+	if (destination.name == "theta_privatenet_be") {
+		privateNetURL = destination.url;
+	}
+});
+
+console.log("privateNetURL: " + privateNetURL);
+
+const provider = new thetajs.providers.HttpProvider('privatenet', privateNetURL + '/rpc'); // Works
+//const provider = new thetajs.providers.HttpProvider(ChainIds.Mainnet); // Mainnet
+
+const tnprov = new thetajs.providers.HttpProvider(ChainIds.Testnet); // Testnet
+const mnprov = new thetajs.providers.HttpProvider(ChainIds.Mainnet); // Mainnet
+
 
 async function doCredStore() {
-	privkey = await readCredential(binding, "privatenet", "password", "privkey");
-	console.log("read privkey:" + JSON.stringify(privkey));
+	try {
+		privkey = await readCredential(binding, "privatenet", "password", "privkey");
+		console.log("read privkey:" + JSON.stringify(privkey));
+	} catch (e) {
+		console.log("Error reading privkey credential:");
+		console.log("binding:" + JSON.stringify(binding.url,null,2));
+		console.log("If running locally and have redeployed, rerun: cf de theta-trustee");
+		console.log("Open the Credential Store and create a namespace=privatenet.");
+		console.log("Create a password=privkey and give it the value found in.");
+		console.log("cat wallet/qwertyuiop.privkey");
+		if (true) {
+			console.log("Using built-in privkey.");
+			privkey = {
+				name: "privkey", 
+				value: "0x93a90ea508331dfdf27fb79757d4250b4e84954927ba0073cd67454ac432c737", 
+				username: "built-in", 
+				metadata: "{\"url\": \"https://www.example.com/path\"}",
+				status: "built-in"
+			};
+			privkey2 = {
+				name: "privkey2", 
+				value: "0x931f84b1891be0b745875ecc9f929d5252c3fdbfbaa4a40810089b44158b02c1", 
+				username: "built-in", 
+				metadata: "{\"url\": \"https://www.example.com/path\"}",
+				status: "built-in"
+			};
+		}
+	}
 }
 
 doCredStore();
 
-
+function startTimer() {
+	const time = process.hrtime();
+	return time;
+}
+ 
+function endTimer(time) {
+	function roundTo(decimalPlaces, numberToRound) {
+		return +(Math.round(numberToRound + `e+${decimalPlaces}`)  + `e-${decimalPlaces}`);
+	}
+	const diff = process.hrtime(time);
+	const NS_PER_SEC = 1e9;
+	const result = (diff[0] * NS_PER_SEC + diff[1]); // Result in Nanoseconds
+	const elapsed = result * 0.0000010;
+	return roundTo(6, elapsed); // Result in milliseconds
+}
 
 var app = express();
 
 var server = require("http").createServer();
-var port = process.env.PORT || 3000;
+var port = process.env.PORT || 8080;
 
 function checkStatus(response) {
     if (!response.ok) throw Error("Unexpected status code: " + response.status);
@@ -105,8 +185,9 @@ async function readCredential(binding, namespace, type, name) {
 app.get("/", function (req, res) {
 
 	var responseStr = "";
-	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><h2>SUCCESS!</h2><br />";
+	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><br />";
 	responseStr += "<a href=\"/trustee/links\">The Links page.</a><br />";
+	responseStr += "<br />";
 	responseStr += "<a href=\"/\">Return to home page.</a><br />";
 	responseStr += "</body></html>";
 	res.status(200).send(responseStr);
@@ -115,8 +196,9 @@ app.get("/", function (req, res) {
 app.get("/trustee", function (req, res) {
 
 	var responseStr = "";
-	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><h2>SUCCESS!</h2><br />";
+	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><br />";
 	responseStr += "<a href=\"/trustee/links\">The Links page.</a><br />";
+	responseStr += "<br />";
 	responseStr += "<a href=\"/\">Return to home page.</a><br />";
 	responseStr += "</body></html>";
 	res.status(200).send(responseStr);
@@ -125,13 +207,16 @@ app.get("/trustee", function (req, res) {
 app.get("/trustee/links", function (req, res) {
 
 	var responseStr = "";
-	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><h2>SUCCESS!</h2><br />";
+	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><br />";
 	responseStr += "<a href=\"/trustee/links\">Back to Links page.</a><br />";
-	responseStr += "<a href=\"/trustee/chkprivkey\">Check PrivKey</a><br />";
-	responseStr += "<a href=\"/trustee/block-height\">block-height</a><br />";
-	responseStr += "<a href=\"/trustee/get-account\">get-account</a> Get Account Balance<br />";
-	responseStr += "<a href=\"/trustee/get-account2\">get-account2</a> Get Account2 Balance<br />";
-	responseStr += "<a href=\"/trustee/send-theta\">send-theta</a> Send Theta and TFuel from Account to Account2<br />";
+	responseStr += "<br />";
+	responseStr += "<a href=\"/trustee/chkprivkey\" target=\"_blank\">Check PrivKey</a><br />";
+	responseStr += "<a href=\"/trustee/block-height\" target=\"_blank\">block-height</a><br />";
+	responseStr += "<a href=\"/trustee/get-account\" target=\"_blank\">get-account</a> Get Account Balance<br />";
+	responseStr += "<a href=\"/trustee/get-account2\" target=\"_blank\">get-account2</a> Get Account2 Balance<br />";
+	responseStr += "<a href=\"/trustee/send-theta\" target=\"_blank\">send-theta</a> Send Theta and TFuel Account <a href=\"/trustee/send-theta?action=doit\" target=\"_blank\">-&gt;</a> Account2<br />";
+	responseStr += "<a href=\"/trustee/send-theta?reverse=true\" target=\"_blank\">send-theta</a> Send Theta and TFuel Account2 <a href=\"/trustee/send-theta?action=doit&reverse=true\" target=\"_blank\">-&gt;</a> Account<br />";
+	responseStr += "<br />";
 	responseStr += "<a href=\"/\">Return to home page.</a><br />";
 	responseStr += "</body></html>";
 	res.status(200).send(responseStr);
@@ -140,7 +225,7 @@ app.get("/trustee/links", function (req, res) {
 app.get("/trustee/chkprivkey", function (req, res) {
 
 	var responseStr = "";
-	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><h2>SUCCESS!</h2><br />";
+	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><br />";
 	responseStr += "<a href=\"/trustee/links\">Back to Links page.</a><br />";
 	responseStr += "<pre>\n";
 	responseStr += privkey.status + "\n";
@@ -150,10 +235,24 @@ app.get("/trustee/chkprivkey", function (req, res) {
 	res.status(200).send(responseStr);
 });
 
+app.get("/trustee/networks", function (req, res) {
+
+	var responseStr = "";
+	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><br />";
+	responseStr += "<a href=\"/trustee/links\">Back to Links page.</a><br />";
+	responseStr += "<pre>\n";
+	responseStr += JSON.stringify(thetajs.networks,null,2) + "\n";
+	responseStr += "</pre>\n";
+	responseStr += "<a href=\"/\">Return to home page.</a><br />";
+	responseStr += "</body></html>";
+	res.status(200).send(responseStr);
+});
+
+
 app.get("/trustee/block-height", async function (req, res) {
 
 	var responseStr = "";
-	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><h2>SUCCESS!</h2><br />";
+	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><br />";
 	responseStr += "<a href=\"/trustee/links\">Back to Links page.</a><br />";
 
 	const blockHeight = await provider.getBlockNumber();
@@ -170,7 +269,7 @@ app.get("/trustee/block-height", async function (req, res) {
 app.get("/trustee/get-account", async function (req, res) {
 
 	var responseStr = "";
-	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><h2>SUCCESS!</h2><br />";
+	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><br />";
 	responseStr += "<a href=\"/trustee/links\">Back to Links page.</a><br />";
 
 	// thetacli query account --address=2E833968E5bB786Ae419c4d13189fB081Cc43bab | jq .coins
@@ -180,6 +279,8 @@ app.get("/trustee/get-account", async function (req, res) {
 	responseStr += "<pre>\n";
 	responseStr += "account  : " + address + "\n";
 	responseStr += JSON.stringify(account.coins,null,2) + "\n";
+	responseStr += "theta:  " + (account.coins.thetawei / 1000000000000000000) + "\n";
+	responseStr += "tfuel: " + (account.coins.tfuelwei / 1000000000000000000) + "\n";
 	responseStr += "</pre>\n";
 	
 	responseStr += "<a href=\"/\">Return to home page.</a><br />";
@@ -190,16 +291,18 @@ app.get("/trustee/get-account", async function (req, res) {
 app.get("/trustee/get-account2", async function (req, res) {
 
 	var responseStr = "";
-	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><h2>SUCCESS!</h2><br />";
+	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><br />";
 	responseStr += "<a href=\"/trustee/links\">Back to Links page.</a><br />";
 
 	// thetacli query account --address=2E833968E5bB786Ae419c4d13189fB081Cc43bab | jq .coins
-	var account2 = await provider.getAccount(address);
+	var account2 = await provider.getAccount(address2);
 	console.log("account2 :" + JSON.stringify(account2.coins,null,2));
 
 	responseStr += "<pre>\n";
 	responseStr += "account2  : " + address2 + "\n";
 	responseStr += JSON.stringify(account2.coins,null,2) + "\n";
+	responseStr += "theta:  " + (account2.coins.thetawei / 1000000000000000000) + "\n";
+	responseStr += "tfuel: " + (account2.coins.tfuelwei / 1000000000000000000) + "\n";
 	responseStr += "</pre>\n";
 	
 	responseStr += "<a href=\"/\">Return to home page.</a><br />";
@@ -210,24 +313,39 @@ app.get("/trustee/get-account2", async function (req, res) {
 app.get("/trustee/send-theta", async function (req, res) {
 
 	var responseStr = "";
-	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><h2>SUCCESS!</h2><br />";
+	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><br />";
 	responseStr += "<a href=\"/trustee/links\">Back to Links page.</a><br />";
 
 	responseStr += "<pre>\n";
 
+	//responseStr += JSON.stringify(req, null, 2) + "\n";
+	
+	console.log(JSON.stringify(req.query, null, 2));
+
 	try {
 
-		const count = await provider.getTransactionCount(address);
+		var from = address;
+		var to = address2;
+		var use_privkey = privkey;
+
+		if (req.query && req.query.reverse && (req.query.reverse == "true")) {
+			from = address2;
+			to = address;
+			use_privkey = privkey2;
+		}
+
+		const count = await provider.getTransactionCount(from);
 		responseStr += "last sequence count :" + count + "\n";
 
-		const wallet = new Wallet(privkey.value);
+		const wallet = new Wallet(use_privkey.value);
 		const connectedWallet = wallet.connect(provider);
 
 		const ten18 = (new BigNumber(10)).pow(18); // 10^18, 1 Theta = 10^18 ThetaWei, 1 Gamma = 10^ TFuelWei
-		const thetaWeiToSend = (new BigNumber(1)).multipliedBy(ten18);
-		const tfuelWeiToSend = (new BigNumber(0.0001)).multipliedBy(ten18);
-		const from = address;
-		const to = address2;
+
+		const thetaWeiToSend = (new BigNumber(1.0)).multipliedBy(ten18);
+
+		const tfuelWeiToSend = (new BigNumber(10.0)).multipliedBy(ten18);
+
 		const txData = {
 			from: from,
 			outputs: [
@@ -244,9 +362,17 @@ app.get("/trustee/send-theta", async function (req, res) {
 		// transaction.inputs[0].sequence = count + 1;
 		responseStr += "transaction :" + JSON.stringify(transaction,null,2) + "\n";
 		
-		
-		if (true) {
+		const tfuelperusd = 0.335824;	// As of 2021-04-29
+		const feetfuel = 0.0001;
+		const feeincents = ( ( tfuelperusd * feetfuel ) * 100 );
+		responseStr += "\nsendTransaction fee: " + feeincents + " cents\n";
+	
+		if (req.query && req.query.action && (req.query.action == "doit")) {
+
+			const start = startTimer();
+
 			const txresult = await connectedWallet.sendTransaction(transaction);
+			responseStr += "sendTransaction duration: " + endTimer(start) + " ms\n";
 			responseStr += "txresult :" + JSON.stringify(txresult,null,2) + "\n";
 
 			const blockHash = txresult.hash;
@@ -266,10 +392,35 @@ app.get("/trustee/send-theta", async function (req, res) {
 	res.status(200).send(responseStr);
 });
 
+app.get("/trustee/get-account-tn", async function (req, res) {
+
+	var responseStr = "";
+	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><br />";
+	responseStr += "<a href=\"/trustee/links\">Back to Links page.</a><br />";
+
+	// thetacli query account --address=2E833968E5bB786Ae419c4d13189fB081Cc43bab | jq .coins
+	// https://beta-explorer.thetatoken.org/account/0x94284C201B6DfF344E086B2878b8fd0cF8B9ED28
+	const addresstn = "0x94284C201B6DfF344E086B2878b8fd0cF8B9ED28";
+	const accounttn = await tnprov.getAccount(addresstn);
+	//const accounttn = await mnprov.getAccount(addresstn);
+	console.log("accounttn :" + JSON.stringify(accounttn.coins,null,2));
+
+	responseStr += "<pre>\n";
+	responseStr += "accounttn  : " + accounttn + "\n";
+	responseStr += JSON.stringify(accounttn.coins,null,2) + "\n";
+	responseStr += "theta:  " + (accounttn.coins.thetawei / 1000000000000000000) + "\n";
+	responseStr += "tfuel: " + (accounttn.coins.tfuelwei / 1000000000000000000) + "\n";
+	responseStr += "</pre>\n";
+	
+	responseStr += "<a href=\"/\">Return to home page.</a><br />";
+	responseStr += "</body></html>";
+	res.status(200).send(responseStr);
+});
+
 app.get("/trustee/copy-me", async function (req, res) {
 
 	var responseStr = "";
-	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><h2>SUCCESS!</h2><br />";
+	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><br />";
 	responseStr += "<a href=\"/trustee/links\">Back to Links page.</a><br />";
 
 	responseStr += "<pre>\n";
@@ -286,5 +437,5 @@ app.get("/trustee/copy-me", async function (req, res) {
 server.on("request", app);
 
 server.listen(port, function () {
-	console.info("Backend: " + server.address().port);
+	console.info("Backend: http://localhost:" + server.address().port);
 });

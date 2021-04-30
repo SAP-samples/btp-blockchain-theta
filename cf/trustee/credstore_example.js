@@ -77,10 +77,13 @@ async function deleteCredential(binding, namespace, type, name) {
     ).then(checkStatus);
 }
 
+// Run this to inject the ENV like when app is deployed to CF
+// cf copyenv theta-trustee | source /dev/stdin
+
 const binding = JSON.parse(process.env.VCAP_SERVICES).credstore[0].credentials;
 let password = {
-    name: "password1", 
-    value: "secret1", 
+    name: "privkey", 
+    value: "0x93a90ea508331dfdf27fb79757d4250b4e84954927ba0073cd67454ac432c737", 
     username: "user1", 
     metadata: "{\"url\": \"https://www.example.com/path\"}"
 };
@@ -92,33 +95,37 @@ let password = {
 // https://cockpit.eu10.hana.ondemand.com/cockpit/#/globalaccount/71f51ce6-c6b5-4583-a6ac-49e392506619/subaccount/bc6ba931-d86a-4804-8e5a-60429930e9b3/org/9afb8943-cb19-4cef-9a1f-c74df59feecf/space/51be80b4-5bec-41e1-9844-b10fe818b6bb/service/af1390d0-2b82-4de8-a1c8-5cc162b57de3/instance/24148380-9c90-48f2-964f-d6139aeb5dfd/namespace/privatenet/credentials
 
 // Load the Environment 
-// cf copyenv theta-trustee
+// cf copyenv theta-trustee | source /dev/stdin
 
 async function doMain() {
 
     console.log("binding: " + JSON.stringify(binding, null, 2));
     var result = null;
 
-    //result = await writeCredential(binding, "privatenet", "password", password);
-    //console.log("write result:" + JSON.stringify(result));
+    try {
+        //result = await writeCredential(binding, "privatenet", "password", password);
+        //console.log("write result:" + JSON.stringify(result));
 
-    result = await readCredential(binding, "privatenet", "password", password.name);
-    console.log("read result:" + JSON.stringify(result));
+        result = await readCredential(binding, "privatenet", "password", password.name);
+        console.log("read result:" + JSON.stringify(result));
 
-    result = await readCredential(binding, "privatenet", "password", "privkey");
-    console.log("read result:" + JSON.stringify(result));
-    //await deleteCredential(binding, "namespace1", "password", password.name);
-    /*
-    let key = {
-        name: "key1", 
-        value: jose.util.randomBytes(32).toString("base64"), 
-        format: "aes", 
-        metadata: "256 bits"
-    };
-    console.log(await writeCredential(binding, "namespace1", "key", key));
-    console.log(await readCredential(binding, "namespace1", "key", key.name));
-    await deleteCredential(binding, "namespace1", "key", key.name);
-    */
+        result = await readCredential(binding, "privatenet", "password", "privkey");
+        console.log("read result:" + JSON.stringify(result));
+        //await deleteCredential(binding, "privatenet", "password", password.name);
+        /*
+        let key = {
+            name: "key1", 
+            value: jose.util.randomBytes(32).toString("base64"), 
+            format: "aes", 
+            metadata: "256 bits"
+        };
+        console.log(await writeCredential(binding, "privatenet", "key", key));
+        console.log(await readCredential(binding, "namespace1", "key", key.name));
+        await deleteCredential(binding, "namespace1", "key", key.name);
+        */
+    } catch (e) {
+        console.log(e);
+    }
 }
 
 doMain();

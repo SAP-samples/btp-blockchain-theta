@@ -9,8 +9,8 @@ spec:
   type: LoadBalancer
   ports:
   #- protocol: TCP
-#  - port: 27318
-  - port: 16888
+  #- port: 27318 # Public Port
+  - port: 16988
     targetPort: 16888
     protocol: TCP
   selector:
