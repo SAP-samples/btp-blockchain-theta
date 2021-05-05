@@ -79,19 +79,21 @@ destinations.forEach(destination => {
 
 console.log("privateNetURL: " + privateNetURL);
 
+
 const provider = new thetajs.providers.HttpProvider('privatenet', privateNetURL + '/rpc'); // Works
 //const provider = new thetajs.providers.HttpProvider(ChainIds.Mainnet); // Mainnet
 
 const tnprov = new thetajs.providers.HttpProvider(ChainIds.Testnet); // Testnet
 const mnprov = new thetajs.providers.HttpProvider(ChainIds.Mainnet); // Mainnet
 
+console.log("mnprov :" + JSON.stringify(mnprov,null,2));
 
 async function doCredStore() {
 	try {
 		privkey = await readCredential(binding, "privatenet", "password", "privkey");
 		console.log("read privkey:" + JSON.stringify(privkey));
 	} catch (e) {
-		console.log("Error reading privkey credential:");
+		console.log("Error reading privkey credential: " + e);
 		console.log("binding:" + JSON.stringify(binding.url,null,2));
 		console.log("If running locally and have redeployed, rerun: cf de theta-trustee");
 		console.log("Open the Credential Store and create a namespace=privatenet.");
