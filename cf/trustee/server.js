@@ -419,6 +419,66 @@ app.get("/trustee/get-account-tn", async function (req, res) {
 	res.status(200).send(responseStr);
 });
 
+// curl https://explorer.thetatoken.org:9000/api/price/all | jq '.body[] | select(._id == "TFUEL") | .price'
+
+async function getPricesUSD() {
+	const url = "https://explorer.thetatoken.org:9000/api/price/all";
+    const result = await fetch(url)
+        .then(checkStatus)
+        .then(response => response.text())
+        .then(JSON.parse);
+    return result;
+}
+
+app.get("/trustee/thetausd", async function (req, res) {
+
+	var responseStr = "";
+	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><br />";
+	responseStr += "<a href=\"/trustee/links\">Back to Links page.</a><br />";
+
+	responseStr += "<pre>\n";
+
+	const prices = await getPricesUSD();
+	var theta_price = 0.0;
+	prices.body.forEach(token => {
+		if (token._id == "THETA") {
+			theta_price = token.price;
+		}
+	});
+	responseStr += theta_price + " THETA/USD \n";
+
+	responseStr += "</pre>\n";
+	
+	responseStr += "<a href=\"/\">Return to home page.</a><br />";
+	responseStr += "</body></html>";
+	res.status(200).send(responseStr);
+});
+
+app.get("/trustee/tfuelusd", async function (req, res) {
+
+	var responseStr = "";
+	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><br />";
+	responseStr += "<a href=\"/trustee/links\">Back to Links page.</a><br />";
+
+	responseStr += "<pre>\n";
+
+	const prices = await getPricesUSD();
+	var tfuel_price = 0.0;
+	prices.body.forEach(token => {
+		if (token._id == "TFUEL") {
+			tfuel_price = token.price;
+		}
+	});
+	responseStr += tfuel_price + " TFuel/USD \n";
+
+	responseStr += "</pre>\n";
+	
+	responseStr += "<a href=\"/\">Return to home page.</a><br />";
+	responseStr += "</body></html>";
+	res.status(200).send(responseStr);
+});
+
+
 app.get("/trustee/copy-me", async function (req, res) {
 
 	var responseStr = "";
@@ -433,8 +493,6 @@ app.get("/trustee/copy-me", async function (req, res) {
 	responseStr += "</body></html>";
 	res.status(200).send(responseStr);
 });
-
-
 
 server.on("request", app);
 
