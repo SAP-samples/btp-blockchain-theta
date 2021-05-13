@@ -278,3 +278,26 @@ curl -X POST -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","metho
 
 curl -X POST -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"thetacli.Send","params":[{"chain_id":"privatenet", "from":"0x2E833968E5bB786Ae419c4d13189fB081Cc43bab", "to":"0xA47B89c94a50C32CEACE9cF64340C4Dce6E5EcC6", "thetawei":"99000000000000000000", "tfuelwei":"88000000000000000000", "fee":"1000000000000", "sequence":"8", "async":false}],"id":1}' http://localhost:16889/rpc | jq .
 ```
+
+```
+# Query against our CF deployed privatenet node
+echo "remoteRPCEndpoint: https://partner-prova-dev-theta-privatenet.cfapps.us21.hana.ondemand.com/rpc" > ~/.thetacli/config.yaml
+thetacli query status
+
+echo "remoteRPCEndpoint: http://localhost:16888/rpc" > ~/.thetacli/config.yaml
+
+# Query against our guardian node
+rm ~/.thetacli/config.yaml
+ssh -L 16888:localhost:16888 theta
+thetacli query status
+
+thetacli query account --address=e38ee246ee86806b14364322e6734be7d8c5323f
+
+```
+
+# On PrivateNet takes 6 seconds / block
+# On MainNet takes ? seconds / block
+
+thetacli tx reserve --chain="privatenet" --from=2E833968E5bB786Ae419c4d13189fB081Cc43bab --fund=100 --collateral=101 --resource_ids=rid1000001 --seq=4 --duration=300
+
+--duration=300 seems like the smallest value it will take

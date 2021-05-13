@@ -20,6 +20,7 @@ const { accessSync } = require("fs");
 const Wallet = thetajs.Wallet;
 const {HttpProvider} = thetajs.providers;
 const SendTransaction = thetajs.transactions.SendTransaction;
+const ReserveFundTransaction = thetajs.transactions.ReserveFundTransaction;
 const Contract = thetajs.Contract;
 const ContractFactory = thetajs.ContractFactory;
 const {ChainIds} = thetajs.networks;
@@ -470,6 +471,88 @@ app.get("/trustee/tfuelusd", async function (req, res) {
 		}
 	});
 	responseStr += tfuel_price + " TFuel/USD \n";
+
+	responseStr += "</pre>\n";
+	
+	responseStr += "<a href=\"/\">Return to home page.</a><br />";
+	responseStr += "</body></html>";
+	res.status(200).send(responseStr);
+});
+
+app.get("/trustee/reserve-fund", async function (req, res) {
+
+	var responseStr = "";
+	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><br />";
+	responseStr += "<a href=\"/trustee/links\">Back to Links page.</a><br />";
+
+	responseStr += "<pre>\n";
+
+	//responseStr += JSON.stringify(req, null, 2) + "\n";
+	
+	console.log(JSON.stringify(req.query, null, 2));
+
+	try {
+
+		var from = address;
+		var to = address2;
+		var use_privkey = privkey;
+
+		if (req.query && req.query.reverse && (req.query.reverse == "true")) {
+			from = address2;
+			to = address;
+			use_privkey = privkey2;
+		}
+
+		const count = await provider.getTransactionCount(from);
+		responseStr += "last sequence count :" + count + "\n";
+
+		const wallet = new Wallet(use_privkey.value);
+		const connectedWallet = wallet.connect(provider);
+
+		const ten18 = (new BigNumber(10)).pow(18); // 10^18, 1 Theta = 10^18 ThetaWei, 1 Gamma = 10^ TFuelWei
+
+		const thetaWeiToSend = (new BigNumber(1.0)).multipliedBy(ten18);
+
+		const tfuelWeiToSend = (new BigNumber(10.0)).multipliedBy(ten18);
+
+		const txData = {
+			from: from,
+			outputs: [
+				{
+					address: to,
+					thetaWei: thetaWeiToSend,
+					tfuelWei: tfuelWeiToSend,
+                    sequence: count + 1
+				}
+			]
+		};
+		
+		const transaction = new ReserveFundTransaction(txData);
+		// transaction.inputs[0].sequence = count + 1;
+		responseStr += "transaction :" + JSON.stringify(transaction,null,2) + "\n";
+		
+		const tfuelperusd = 0.335824;	// As of 2021-04-29
+		const feetfuel = 0.0001;
+		const feeincents = ( ( tfuelperusd * feetfuel ) * 100 );
+		responseStr += "\nsendTransaction fee: " + feeincents + " cents\n";
+	
+		if (req.query && req.query.action && (req.query.action == "doit")) {
+
+			const start = startTimer();
+
+			const txresult = await connectedWallet.sendTransaction(transaction);
+			responseStr += "sendTransaction duration: " + endTimer(start) + " ms\n";
+			responseStr += "txresult :" + JSON.stringify(txresult,null,2) + "\n";
+
+			const blockHash = txresult.hash;
+			responseStr += "blockHash :" + JSON.stringify(blockHash,null,2) + "\n";
+			const block = await provider.getTransaction(blockHash);
+			responseStr += "block :" + JSON.stringify(block,null,2) + "\n";
+		}
+	} catch(e) {
+		responseStr += "error : " + e + "\n";
+	}
+
 
 	responseStr += "</pre>\n";
 	
