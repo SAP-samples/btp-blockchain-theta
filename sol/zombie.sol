@@ -1,5 +1,6 @@
-pragma solidity >=0.5.0 <0.8.5;
 // SPDX-License-Identifier: UNLICENSED;
+pragma solidity >=0.5.0 <0.6.0;
+// https://github.com/ethereum/solidity/releases/tag/v0.5.0
 
 contract ZombieFactory {
 

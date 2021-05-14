@@ -7,6 +7,8 @@ mkdir -p /root/go/src/github.com/thetatoken/theta
 git clone --branch release https://github.com/thetatoken/theta-protocol-ledger.git /root/go/src/github.com/thetatoken/theta
 cp -r /root/go/src/github.com/thetatoken/theta/integration/privatenet /root/go/src/github.com/thetatoken/privatenet
 # https://github.com/thetatoken/theta-mainnet-integration-guide/blob/master/docs/config.md
+# Adjust the blockheight at which smart contract support is enabled(50).
+sed -i -e "s/HeightEnableSmartContract uint64 = 8411427/HeightEnableSmartContract uint64 = 50/g" /root/go/src/github.com/thetatoken/theta/common/heights.go
 # Override default port 16888
 echo '  port: 8080'  >> /root/go/src/github.com/thetatoken/privatenet/node/config.yaml
 echo 'log:' >> /root/go/src/github.com/thetatoken/privatenet/node/config.yaml

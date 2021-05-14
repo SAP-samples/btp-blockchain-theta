@@ -281,7 +281,7 @@ curl -X POST -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","metho
 
 ```
 # Query against our CF deployed privatenet node
-echo "remoteRPCEndpoint: https://partner-prova-dev-theta-privatenet.cfapps.us21.hana.ondemand.com/rpc" > ~/.thetacli/config.yaml
+echo "Run this:" ; cf env theta-trustee | grep -A 5 destinations | grep url | tr -d '"' | sed 's/  url : /echo "remoteRPCEndpoint: /g' | echo "$(cat -)/rpc\" > ~/.thetacli/config.yaml" ; echo "Then:" ; echo "thetacli query status"
 thetacli query status
 
 echo "remoteRPCEndpoint: http://localhost:16888/rpc" > ~/.thetacli/config.yaml
@@ -290,6 +290,12 @@ echo "remoteRPCEndpoint: http://localhost:16888/rpc" > ~/.thetacli/config.yaml
 rm ~/.thetacli/config.yaml
 ssh -L 16888:localhost:16888 theta
 thetacli query status
+
+# Query against SmartContractsSandbox
+echo "remoteRPCEndpoint: https://theta-node-rpc-smart-contract-sandbox.thetatoken.org/rpc" > ~/.thetacli/config.yaml
+thetacli query status
+
+
 
 thetacli query account --address=e38ee246ee86806b14364322e6734be7d8c5323f
 
