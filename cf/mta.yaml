@@ -152,7 +152,10 @@ resources:
    type: org.cloudfoundry.managed-service
    parameters:
       service: credstore
-      service-plan: standard
+      # Use standard plan for Productive Accounts
+      # service-plan: standard
+      # Use trial plan for Trial Accounts
+      service-plan: trial
       service-name: THETA_CRED
 
 ### New Resources Here ###
