@@ -307,3 +307,20 @@ thetacli query account --address=e38ee246ee86806b14364322e6734be7d8c5323f
 thetacli tx reserve --chain="privatenet" --from=2E833968E5bB786Ae419c4d13189fB081Cc43bab --fund=100 --collateral=101 --resource_ids=rid1000001 --seq=4 --duration=300
 
 --duration=300 seems like the smallest value it will take
+
+
+echo "remoteRPCEndpoint: https://partner-prova-dev-theta-privatenet.cfapps.us21.hana.ondemand.com/rpc" > ~/.thetacli/config.yaml
+
+< # Query against our guardian node (from local network)
+---
+> # Query against our guardian node
+294,303d293
+< thetacli query account --address=e38ee246ee86806b14364322e6734be7d8c5323f
+< 
+< # Query against MainNet
+< echo "remoteRPCEndpoint: https://theta-bridge-rpc.thetatoken.org/rpc" > ~/.thetacli/config.yaml
+< thetacli query status
+< 
+< # Query against TestNet
+< echo "remoteRPCEndpoint: http://theta-node-rpc-testnet.thetatoken.org:16888/rpc" > ~/.thetacli/config.yaml
+< thetacli query status
