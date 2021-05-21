@@ -51,3 +51,11 @@ Flags:
       --verbose
 
 Smart contract feature not enabled until block height 8411427
+
+solc --pretty-json --combined-json opcodes,srcmap ./zombiefactory.sol > outbin/out.json ; cat outbin/out.json | jq '.contracts | ."./zombiefactory.sol:ZombieFactory" '
+
+solc --pretty-json --combined-json abi,bin,opcodes,srcmap ./zombiefeeding.sol > outbin/out.json ; cat outbin/out.json | jq '.contracts '
+
+solc --pretty-json --combined-json abi,bin,opcodes,srcmap ./zombiefeeding.sol > outbin/out.json ; cat outbin/out.json | jq '.contracts | ."./zombiefeeding.sol:ZombieFeeding" '
+
+solc --pretty-json --combined-json abi,bin,opcodes,srcmap ./zombiefeeding.sol > outbin/combined.json ; cat outbin/combined.json | jq '.contracts | ."./zombiefeeding.sol:ZombieFeeding" | .abi ' > outbin/abi.json ; cat outbin/combined.json | jq '.contracts | ."./zombiefeeding.sol:ZombieFeeding" | .srcmap ' > outbin/sourceMap.json ; cat outbin/combined.json | jq '.contracts | ."./zombiefeeding.sol:ZombieFeeding" | .opcodes ' > outbin/opcodes.json ; cat outbin/combined.json | jq '.contracts | ."./zombiefeeding.sol:ZombieFeeding" | .bin ' > outbin/object.json
