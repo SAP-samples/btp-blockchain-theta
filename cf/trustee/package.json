@@ -1,4 +1,8 @@
 {
+  "depsStash": {
+    "@thetalabs/theta-js": "latest",
+    "nodemon": "latest"
+  },
   "dependencies": {
     "@sap/hdbext": "latest",
     "@sap/xsenv": "latest",
