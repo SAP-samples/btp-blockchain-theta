@@ -1,4 +1,23 @@
-
+launch.json
+```
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  "version": "0.2.0",
+  "configurations": [
+  {
+    "name": "Launch Trustee",
+    "program": "${workspaceFolder}/cf/trustee/server.js",
+    "request": "launch",
+    "envFile": "${workspaceFolder}/cf/trustee/.env",
+    "skipFiles": [
+      "<node_internals>/**"
+    ],
+    "type": "pwa-node"
+  }
+  ]
+}
+```
   {
     "name": "Launch Trustee",
     "program": "${workspaceFolder}/cf/trustee/server.js",
@@ -17,3 +36,9 @@ cat default-env.json | jq -c .destinations | sed 's/\\n//g' | sed 's/\\"/"/g' | 
 echo -n "VCAP_SERVICES='" >> .env
 cat default-env.json | jq -c .VCAP_SERVICES | tr -d '\n' >> .env
 echo "'" >> .env
+
+
+cd cf/trustee
+npm install
+cf de theta-trustee
+./default2dot
