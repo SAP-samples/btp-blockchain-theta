@@ -55,6 +55,13 @@ if [ "$#" -ge 2 ]; then
   contractName=$2
 fi
 
+echo ""
+echo "Making outbin..."
+cmd='mkdir -p outbin'
+if [ $do_echo -eq 1 ]; then echo $cmd; fi
+if [ $do_run -eq 1 ]; then eval $cmd; fi
+
+
 echo "Generating for "$solfile" contract : "$contractName
 
 # solc --pretty-json --combined-json opcodes,srcmap ./zombiefactory.sol > outbin/out.json ; cat outbin/out.json | jq '.contracts | ."./zombiefactory.sol:ZombieFactory" '
