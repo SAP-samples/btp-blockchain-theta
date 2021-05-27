@@ -7,9 +7,10 @@ launch.json
   "configurations": [
   {
     "name": "Launch Trustee",
-    "program": "${workspaceFolder}/cf/trustee/server.js",
+    "program": "${workspaceFolder}/btp-blockchain-theta/cf/trustee/server.js",
     "request": "launch",
-    "envFile": "${workspaceFolder}/cf/trustee/.env",
+    "envFile": "${workspaceFolder}/btp-blockchain-theta/cf/trustee/.env",
+    "cwd": "${workspaceFolder}/btp-blockchain-theta/cf/trustee",
     "skipFiles": [
       "<node_internals>/**"
     ],
