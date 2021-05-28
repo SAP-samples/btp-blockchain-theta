@@ -10,6 +10,7 @@
     "@thetalabs/theta-js": "git://github.com/andrewlunde/theta-js",
     "bignumber.js": "^8.1.1",
     "body-parser": "latest",
+    "random-lorem": "latest",
     "class-validator": "^0.9.1",
     "express": "~4.16.0",
     "isomorphic-fetch": "^3.0.0",
@@ -17,7 +18,7 @@
     "morphism": "^1.10.0",
     "node-fetch": "^2.6.1",
     "node-jose": "^2.0.0",
-    "nodemon": "latest",
+    "nodemon": "^2.0.7",
     "passport": "^0.4.0",
     "stringify-object": "latest",
     "wallet-address-validator": "^0.2.4"
