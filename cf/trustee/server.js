@@ -85,16 +85,15 @@ destinations.forEach(destination => {
 
 console.log("privateNetURL: " + privateNetURL);
 
+// Uncomment the provider for the network you want to work with.
 
-const provider = new thetajs.providers.HttpProvider('privatenet', privateNetURL + '/rpc'); // Works
+const provider = new thetajs.providers.HttpProvider('privatenet', privateNetURL + '/rpc'); // CloudFoundry deployed module
+//const provider = new thetajs.providers.HttpProvider(ChainIds.Testnet); // Testnet
 //const provider = new thetajs.providers.HttpProvider(ChainIds.Mainnet); // Mainnet
+//const provider = new thetajs.providers.HttpProvider(ChainIds.Privatenet); // SmartContracts Sandbox
+//const provider = new thetajs.providers.HttpProvider('privatenet', 'http://localhost:16888/rpc'); // Docker running locally on 16888
 
-const tnprov = new thetajs.providers.HttpProvider(ChainIds.Testnet); // Testnet
-const mnprov = new thetajs.providers.HttpProvider(ChainIds.Mainnet); // Mainnet
-const sbprov = new thetajs.providers.HttpProvider(ChainIds.Privatenet); // SmartContracts Sandbox
-const lnprov = new thetajs.providers.HttpProvider('privatenet', 'http://localhost:16888/rpc'); // Docker running locally 
-
-console.log("mnprov :" + JSON.stringify(mnprov,null,2));
+console.log("provider :" + JSON.stringify(provider,null,2));
 
 async function doCredStore() {
 	try {
@@ -233,6 +232,10 @@ app.get("/trustee/links", function (req, res) {
 	responseStr += "<a href=\"/trustee/get-account2\" target=\"_blank\">get-account2</a> Get Account2 Balance<br />";
 	responseStr += "<a href=\"/trustee/send-theta\" target=\"_blank\">send-theta</a> Send Theta and TFuel Account <a href=\"/trustee/send-theta?action=doit\" target=\"_blank\">-&gt;</a> Account2<br />";
 	responseStr += "<a href=\"/trustee/send-theta?reverse=true\" target=\"_blank\">send-theta</a> Send Theta and TFuel Account2 <a href=\"/trustee/send-theta?action=doit&reverse=true\" target=\"_blank\">-&gt;</a> Account<br />";
+
+	responseStr += "<a href=\"/trustee/deploy-last-compiled-contract\" target=\"_blank\">deploy-last-compiled-contract</a> Deploy Last Compiled Contract <a href=\"/trustee/deploy-last-compiled-contract?action=doit\" target=\"_blank\"> Do-It </a><br />";
+	responseStr += "<a href=\"/trustee/interact-with-last-contract\" target=\"_blank\">interact-with-last-contract</a> Interact with Last Contract <a href=\"/trustee/interact-with-last-contract?action=doit\" target=\"_blank\"> Do-It </a><br />";
+
 	responseStr += "<br />";
 	responseStr += "<a href=\"/\">Return to home page.</a><br />";
 	responseStr += "</body></html>";
@@ -334,7 +337,7 @@ app.get("/trustee/get-accountx", async function (req, res) {
 	responseStr += "<a href=\"/trustee/links\">Back to Links page.</a><br />";
 
 	// thetacli query account --address=2E833968E5bB786Ae419c4d13189fB081Cc43bab | jq .coins
-	var accountx = await sbprov.getAccount(addressx);
+	var accountx = await provider.getAccount(addressx);
 	console.log("accountx :" + JSON.stringify(accountx.coins,null,2));
 
 	responseStr += "<pre>\n";
@@ -424,31 +427,6 @@ app.get("/trustee/send-theta", async function (req, res) {
 	}
 
 
-	responseStr += "</pre>\n";
-	
-	responseStr += "<a href=\"/\">Return to home page.</a><br />";
-	responseStr += "</body></html>";
-	res.status(200).send(responseStr);
-});
-
-app.get("/trustee/get-account-tn", async function (req, res) {
-
-	var responseStr = "";
-	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><br />";
-	responseStr += "<a href=\"/trustee/links\">Back to Links page.</a><br />";
-
-	// thetacli query account --address=2E833968E5bB786Ae419c4d13189fB081Cc43bab | jq .coins
-	// https://beta-explorer.thetatoken.org/account/0x94284C201B6DfF344E086B2878b8fd0cF8B9ED28
-	const addresstn = "0x94284C201B6DfF344E086B2878b8fd0cF8B9ED28";
-	const accounttn = await tnprov.getAccount(addresstn);
-	//const accounttn = await mnprov.getAccount(addresstn);
-	console.log("accounttn :" + JSON.stringify(accounttn.coins,null,2));
-
-	responseStr += "<pre>\n";
-	responseStr += "accounttn  : " + accounttn + "\n";
-	responseStr += JSON.stringify(accounttn.coins,null,2) + "\n";
-	responseStr += "theta:  " + (accounttn.coins.thetawei / 1000000000000000000) + "\n";
-	responseStr += "tfuel: " + (accounttn.coins.tfuelwei / 1000000000000000000) + "\n";
 	responseStr += "</pre>\n";
 	
 	responseStr += "<a href=\"/\">Return to home page.</a><br />";
@@ -605,7 +583,7 @@ app.get("/trustee/deploy-contract-sb", async function (req, res) {
 
 	// thetacli query account --address=94284C201B6DfF344E086B2878b8fd0cF8B9ED28 | jq .coins
 	// https://smart-contract-testnet-explorer.thetatoken.org/account/0x94284C201B6DfF344E086B2878b8fd0cF8B9ED28
-	const accounttn = await sbprov.getAccount(addressx);
+	const accounttn = await provider.getAccount(addressx);
 	//const accounttn = await mnprov.getAccount(addresstn);
 	console.log("accounttn :" + JSON.stringify(accounttn.coins,null,2));
 
@@ -621,7 +599,7 @@ app.get("/trustee/deploy-contract-sb", async function (req, res) {
 	res.status(200).send(responseStr);
 });
 
-app.get("/trustee/deploy-contract-ln", async function (req, res) {
+app.get("/trustee/deploy-last-compiled-contract", async function (req, res) {
 
 	var responseStr = "";
 	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><br />";
@@ -629,8 +607,6 @@ app.get("/trustee/deploy-contract-ln", async function (req, res) {
 
 	// thetacli query account --address=94284C201B6DfF344E086B2878b8fd0cF8B9ED28 | jq .coins
 	// https://smart-contract-testnet-explorer.thetatoken.org/account/0x94284C201B6DfF344E086B2878b8fd0cF8B9ED28
-	//const account = await lnprov.getAccount(address);
-    //const account = await sbprov.getAccount(address);
     const account = await provider.getAccount(address);
 	//const accountx = await mnprov.getAccount(addresstn);
 	console.log("account :" + JSON.stringify(account.coins,null,2));
@@ -696,8 +672,8 @@ app.get("/trustee/deploy-contract-ln", async function (req, res) {
             const result = await contractToDeploy.deploy();
             console.log("result :" + JSON.stringify(result,null,2));
             const deployedAddress = result.contract_address;
-
-            responseStr += "deployedAddress  : " + deployedAddress + "\n";
+			process.env.CONTRACT_ADDR = deployedAddress;
+            responseStr += "\n</pre><strong>deployedAddress  : " + deployedAddress + "</strong><pre>\n";
             responseStr += JSON.stringify(result,null,2) + "\n";
         }
 	} catch (e) {
@@ -712,11 +688,6 @@ app.get("/trustee/deploy-contract-ln", async function (req, res) {
 	res.status(200).send(responseStr);
 });
 
-//"contract_address": "0xba30579024448b979b6ee2f58d30d4e814de2f7e"
-//"contract_address": "0xfff2bb6198f181c412bb250825a5b3aff1bb2d3a"
-//"contract_address": "0x7ad6cea2bc3162e30a3c98d84f821b3233c22647"
-//"contract_address": "0x30f3c545c4511998588c5d715bf84b8c54ac1f20"
-
 // zombie.sol Contract Addr on SandBox: 0xdcfb7bece0b71d3fd58831d7b9d9c2f63cdb4881
 // OriginalGN.sol Contract Addr on SandBox: 0x75d03001e3596f9cbc88991e5f5a02cfacca0f23
 
@@ -726,9 +697,27 @@ app.get("/trustee/deploy-contract-ln", async function (req, res) {
 // zombile.sol Contract Addr on theta-privatenet: deployedAddress  : 0xba30579024448b979b6ee2f58d30d4e814de2f7e
 
 
+process.env.CONTRACT_ADDR
+
+function getLastContractAddress(req) {
+
+	var addr = '';
+
+	if (process.env.CONTRACT_ADDR) {
+        addr = process.env.CONTRACT_ADDR;
+	}
+
+	if (req.query && req.query.addr) {
+		addr = req.query.addr;
+	}
+	
+	return addr;
+}
+
+
 // need to interact with above localnet contract 
 
-app.get("/trustee/interact-contract-ln", async function (req, res) {
+app.get("/trustee/interact-with-last-contract", async function (req, res) {
 
 	var responseStr = "";
 	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><br />";
@@ -736,24 +725,23 @@ app.get("/trustee/interact-contract-ln", async function (req, res) {
 
 	// thetacli query account --address=94284C201B6DfF344E086B2878b8fd0cF8B9ED28 | jq .coins
 	// https://smart-contract-testnet-explorer.thetatoken.org/account/0x94284C201B6DfF344E086B2878b8fd0cF8B9ED28
-	const account = await sbprov.getAccount(address);
+	const account = await provider.getAccount(address);
 	//const accountx = await mnprov.getAccount(addresstn);
 	console.log("account :" + JSON.stringify(account.coins,null,2));
 
 	// https://docs.thetatoken.org/docs/theta-js-sdk-contract
-	const contractAddress = '0xba30579024448b979b6ee2f58d30d4e814de2f7e';
+	const contractAddress = getLastContractAddress(req);
 	// When copying from Remix IDE, transform with this.
     // cat ABI | tr -d '[:space:]' > ABI.abi
 
     var ABI = "";
     try {
+		// https://docs.thetatoken.org/docs/theta-js-sdk-contract-factory#define-your-abi-and-bytecode-to-deploy
 
-    // https://docs.thetatoken.org/docs/theta-js-sdk-contract-factory#define-your-abi-and-bytecode-to-deploy
-
-    ABI = JSON.parse(fs.readFileSync('../../sol/outbin/abi.json','utf8'));
-    // Doc sample ABIToDeploy = "[{\"constant\":true,\"inputs\":[],\"name\":\"name\",\"outputs\":[{\"name\":\"\",\"type\":\"string\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"spender\",\"type\":\"address\"},{\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"approve\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"totalSupply\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"sender\",\"type\":\"address\"},{\"name\":\"recipient\",\"type\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"transferFrom\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"decimals\",\"outputs\":[{\"name\":\"\",\"type\":\"uint8\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"spender\",\"type\":\"address\"},{\"name\":\"addedValue\",\"type\":\"uint256\"}],\"name\":\"increaseAllowance\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"account\",\"type\":\"address\"}],\"name\":\"balanceOf\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"symbol\",\"outputs\":[{\"name\":\"\",\"type\":\"string\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"spender\",\"type\":\"address\"},{\"name\":\"subtractedValue\",\"type\":\"uint256\"}],\"name\":\"decreaseAllowance\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"recipient\",\"type\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"owner\",\"type\":\"address\"},{\"name\":\"spender\",\"type\":\"address\"}],\"name\":\"allowance\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"name\":\"name\",\"type\":\"string\"},{\"name\":\"symbol\",\"type\":\"string\"},{\"name\":\"decimals\",\"type\":\"uint8\"},{\"name\":\"amount\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"Transfer\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"owner\",\"type\":\"address\"},{\"indexed\":true,\"name\":\"spender\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"Approval\",\"type\":\"event\"}]";
+		ABI = JSON.parse(fs.readFileSync('../../sol/outbin/abi.json','utf8'));
+		// Doc sample ABIToDeploy = "[{\"constant\":true,\"inputs\":[],\"name\":\"name\",\"outputs\":[{\"name\":\"\",\"type\":\"string\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"spender\",\"type\":\"address\"},{\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"approve\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"totalSupply\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"sender\",\"type\":\"address\"},{\"name\":\"recipient\",\"type\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"transferFrom\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"decimals\",\"outputs\":[{\"name\":\"\",\"type\":\"uint8\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"spender\",\"type\":\"address\"},{\"name\":\"addedValue\",\"type\":\"uint256\"}],\"name\":\"increaseAllowance\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"account\",\"type\":\"address\"}],\"name\":\"balanceOf\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"symbol\",\"outputs\":[{\"name\":\"\",\"type\":\"string\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"spender\",\"type\":\"address\"},{\"name\":\"subtractedValue\",\"type\":\"uint256\"}],\"name\":\"decreaseAllowance\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"recipient\",\"type\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"owner\",\"type\":\"address\"},{\"name\":\"spender\",\"type\":\"address\"}],\"name\":\"allowance\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"name\":\"name\",\"type\":\"string\"},{\"name\":\"symbol\",\"type\":\"string\"},{\"name\":\"decimals\",\"type\":\"uint8\"},{\"name\":\"amount\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"Transfer\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"owner\",\"type\":\"address\"},{\"indexed\":true,\"name\":\"spender\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"Approval\",\"type\":\"event\"}]";
     } catch(e) {
-
+		console.error(e);
     }
 	
 	const wallet = new Wallet(privkey.value);
@@ -761,22 +749,19 @@ app.get("/trustee/interact-contract-ln", async function (req, res) {
 
 	const contract = new thetajs.Contract(contractAddress, ABI, connectedWallet);
 
+	//Parse ABI and loop through all the readonly things
+
 	// Read the name of a TNT-20 contract
-	const contract_name = await contract.name();
-	const contract_totalSupply = await contract.totalSupply();
-	const contract_version = await contract.version();
-	const contract_symbol = await contract.symbol();
-	const contract_balanceOfx = await contract.balanceOf(addressx);
-	const contract_balanceOf2 = await contract.balanceOf(address2);
+	//const contract_name = await contract.name();
 	
 	// Transaction: Transfer TNT-20 tokens (write)
-	const contract_transfer_result = await contract.transfer(address2, "9");
+	//const contract_transfer_result = await contract.transfer(address2, "9");
 	
-	const blockHash = contract_transfer_result.hash;
-	const block = await sbprov.getTransaction(blockHash);
+	//const blockHash = contract_transfer_result.hash;
+	//const block = await provider.getTransaction(blockHash);
 
-	const after_balanceOfx = await contract.balanceOf(addressx);
-	const after_balanceOf2 = await contract.balanceOf(address2);
+	//const after_balanceOfx = await contract.balanceOf(addressx);
+	//const after_balanceOf2 = await contract.balanceOf(address2);
 
 // data a9059cbb0000000000000000000000000d2fd67d573c8ecb4161510fc00754d64b401f86000000000000000000000000000000000000000000000000000000000000000a
 
@@ -785,18 +770,7 @@ app.get("/trustee/interact-contract-ln", async function (req, res) {
 	responseStr += JSON.stringify(accountx.coins,null,2) + "\n";
 	responseStr += "theta:  " + (accountx.coins.thetawei / 1000000000000000000) + "\n";
 	responseStr += "tfuel: " + (accountx.coins.tfuelwei / 1000000000000000000) + "\n";
-	responseStr += "contract.name: " + contract_name + "\n";
-	responseStr += "contract.totalSupply: " + contract_totalSupply + "\n";
-	responseStr += "contract.version: " + contract_version + "\n";
-	responseStr += "contract.symbol: " + contract_symbol + "\n";
-	responseStr += "before.balanceOfx: " + contract_balanceOfx + "\n";
-	responseStr += "before.balanceOf2: " + contract_balanceOf2 + "\n";
-	responseStr += "contract.tx: " + contract_symbol + "\n";
-	responseStr += "transfer :" + JSON.stringify(contract_transfer_result,null,2) + "\n";
-	responseStr += "blockHash :" + JSON.stringify(blockHash,null,2) + "\n";
-	responseStr += "block :" + JSON.stringify(block,null,2) + "\n";
-	responseStr += "after.balanceOfx: " + after_balanceOfx + "\n";
-	responseStr += "after.balanceOf2: " + after_balanceOf2 + "\n";
+	responseStr += "ABI: " + JSON.stringify(ABI,null,2) + "\n";
 	responseStr += "</pre>\n";
 	
 	responseStr += "<a href=\"/\">Return to home page.</a><br />";
@@ -812,7 +786,7 @@ app.get("/trustee/create-zombie", async function (req, res) {
 
 	// thetacli query account --address=94284C201B6DfF344E086B2878b8fd0cF8B9ED28 | jq .coins
 	// https://smart-contract-testnet-explorer.thetatoken.org/account/0x94284C201B6DfF344E086B2878b8fd0cF8B9ED28
-	const account = await sbprov.getAccount(address);
+	const account = await provider.getAccount(address);
 	//const accountx = await mnprov.getAccount(addresstn);
 	console.log("account :" + JSON.stringify(account.coins,null,2));
 
@@ -861,7 +835,7 @@ app.get("/trustee/get-zombie", async function (req, res) {
 
 	// thetacli query account --address=94284C201B6DfF344E086B2878b8fd0cF8B9ED28 | jq .coins
 	// https://smart-contract-testnet-explorer.thetatoken.org/account/0x94284C201B6DfF344E086B2878b8fd0cF8B9ED28
-	const account = await sbprov.getAccount(address);
+	const account = await provider.getAccount(address);
 	//const accountx = await mnprov.getAccount(addresstn);
 	console.log("account :" + JSON.stringify(account.coins,null,2));
 
