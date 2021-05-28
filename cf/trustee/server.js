@@ -726,13 +726,17 @@ app.get("/trustee/interact-with-last-contract", async function (req, res) {
 	// thetacli query account --address=94284C201B6DfF344E086B2878b8fd0cF8B9ED28 | jq .coins
 	// https://smart-contract-testnet-explorer.thetatoken.org/account/0x94284C201B6DfF344E086B2878b8fd0cF8B9ED28
 	const account = await provider.getAccount(address);
-	//const accountx = await mnprov.getAccount(addresstn);
+	//const contract = await mnprov.getAccount(addresstn);
 	console.log("account :" + JSON.stringify(account.coins,null,2));
 
 	// https://docs.thetatoken.org/docs/theta-js-sdk-contract
-	const contractAddress = getLastContractAddress(req);
+    var contractAddress = getLastContractAddress(req);
+    contractAddress = '0x9572ecea04fe74b642400dbb04952e91049c9b3d';
+
 	// When copying from Remix IDE, transform with this.
     // cat ABI | tr -d '[:space:]' > ABI.abi
+
+    responseStr += "<pre>\n";
 
     var ABI = "";
     try {
@@ -742,12 +746,17 @@ app.get("/trustee/interact-with-last-contract", async function (req, res) {
 		// Doc sample ABIToDeploy = "[{\"constant\":true,\"inputs\":[],\"name\":\"name\",\"outputs\":[{\"name\":\"\",\"type\":\"string\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"spender\",\"type\":\"address\"},{\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"approve\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"totalSupply\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"sender\",\"type\":\"address\"},{\"name\":\"recipient\",\"type\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"transferFrom\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"decimals\",\"outputs\":[{\"name\":\"\",\"type\":\"uint8\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"spender\",\"type\":\"address\"},{\"name\":\"addedValue\",\"type\":\"uint256\"}],\"name\":\"increaseAllowance\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"account\",\"type\":\"address\"}],\"name\":\"balanceOf\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"symbol\",\"outputs\":[{\"name\":\"\",\"type\":\"string\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"spender\",\"type\":\"address\"},{\"name\":\"subtractedValue\",\"type\":\"uint256\"}],\"name\":\"decreaseAllowance\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"recipient\",\"type\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"owner\",\"type\":\"address\"},{\"name\":\"spender\",\"type\":\"address\"}],\"name\":\"allowance\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"name\":\"name\",\"type\":\"string\"},{\"name\":\"symbol\",\"type\":\"string\"},{\"name\":\"decimals\",\"type\":\"uint8\"},{\"name\":\"amount\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"Transfer\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"owner\",\"type\":\"address\"},{\"indexed\":true,\"name\":\"spender\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"Approval\",\"type\":\"event\"}]";
     } catch(e) {
 		console.error(e);
+	    responseStr += "error : " + e + "\n";
     }
 	
 	const wallet = new Wallet(privkey.value);
 	const connectedWallet = wallet.connect(provider);
 
+    responseStr += "ABI : " + JSON.stringify(ABI,null,2) + "\n";
+
 	const contract = new thetajs.Contract(contractAddress, ABI, connectedWallet);
+
+   responseStr += "contract : " + JSON.stringify(contract,null,2) + "\n";
 
 	//Parse ABI and loop through all the readonly things
 
@@ -765,12 +774,10 @@ app.get("/trustee/interact-with-last-contract", async function (req, res) {
 
 // data a9059cbb0000000000000000000000000d2fd67d573c8ecb4161510fc00754d64b401f86000000000000000000000000000000000000000000000000000000000000000a
 
-	responseStr += "<pre>\n";
-	responseStr += "accountx  : " + accountx + "\n";
-	responseStr += JSON.stringify(accountx.coins,null,2) + "\n";
-	responseStr += "theta:  " + (accountx.coins.thetawei / 1000000000000000000) + "\n";
-	responseStr += "tfuel: " + (accountx.coins.tfuelwei / 1000000000000000000) + "\n";
-	responseStr += "ABI: " + JSON.stringify(ABI,null,2) + "\n";
+	responseStr += "contract  : " + contract + "\n";
+	responseStr += JSON.stringify(contract.coins,null,2) + "\n";
+	responseStr += "theta:  " + (contract.coins.thetawei / 1000000000000000000) + "\n";
+	responseStr += "tfuel: " + (contract.coins.tfuelwei / 1000000000000000000) + "\n";
 	responseStr += "</pre>\n";
 	
 	responseStr += "<a href=\"/\">Return to home page.</a><br />";
