@@ -9,6 +9,8 @@ cp -r /root/go/src/github.com/thetatoken/theta/integration/privatenet /root/go/s
 # https://github.com/thetatoken/theta-mainnet-integration-guide/blob/master/docs/config.md
 # Adjust the blockheight at which smart contract support is enabled(50).
 sed -i -e "s/HeightEnableSmartContract uint64 = 8411427/HeightEnableSmartContract uint64 = 50/g" /root/go/src/github.com/thetatoken/theta/common/heights.go
+# Lower the MinimumFundReserveDuration for easier testing of auto release of funds
+sed -i -e "s/MinimumFundReserveDuration uint64 = 300/MinimumFundReserveDuration uint64 = 30/g" /root/go/src/github.com/thetatoken/theta/ledger/types/const.go
 # Override default port 16888
 echo '  port: 8080'  >> /root/go/src/github.com/thetatoken/privatenet/node/config.yaml
 echo 'log:' >> /root/go/src/github.com/thetatoken/privatenet/node/config.yaml

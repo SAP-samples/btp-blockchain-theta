@@ -324,3 +324,13 @@ echo "remoteRPCEndpoint: https://partner-prova-dev-theta-privatenet.cfapps.us21.
 < # Query against TestNet
 < echo "remoteRPCEndpoint: http://theta-node-rpc-testnet.thetatoken.org:16888/rpc" > ~/.thetacli/config.yaml
 < thetacli query status
+
+
+// If running privatenet on trial and you get this.  Probably the privatenet node is stopped.
+
+$ thetacli query account --address=2E833968E5bB786Ae419c4d13189fB081Cc43bab
+Using config file: /Users/i830671/.thetacli/config.yaml
+Failed to get account details: json: cannot unmarshal number into Go value of type jsonrpc.RPCResponse
+
+cf restart theta-privatenet
+
