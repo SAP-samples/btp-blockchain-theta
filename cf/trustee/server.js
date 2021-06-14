@@ -672,7 +672,7 @@ app.get("/trustee/interact-with-last-contract", async function (req, res) {
 	res.status(200).send(responseStr);
 });
 
-// curl https://explorer.thetatoken.org:9000/api/price/all | jq '.body[] | select(._id == "TFUEL") | .price'
+// curl -s https://explorer.thetatoken.org:8443/api/price/all | jq '.body[] | select(._id == "TFUEL") | .price'
 
 async function getPricesUSD() {
 	const url = "https://explorer.thetatoken.org:9000/api/price/all";
