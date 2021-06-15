@@ -42,6 +42,10 @@ const address2 = "0x0d2fD67d573c8ecB4161510fc00754d64B401F86";
 const addressx = "0x94284C201B6DfF344E086B2878b8fd0cF8B9ED28";
 // cat wallet/quertyuiop.privkey
 
+const Alice = address;
+const Bob = "0x70f587259738cB626A1720Af7038B8DcDb6a42a0";
+const Carol = "0xcd56123D0c5D6C1Ba4D39367b88cba61D93F5405";
+
 const mnaddress = "0x2E833968E5bB786Ae419c4d13189fB081Cc43bab";
 // 0xabcdefxxxxxxx
 
@@ -64,6 +68,9 @@ try {
 var privkey = null;
 var privkey2 = null;
 var privkeyx = null;
+var privkeyalice = null;
+var privkeybob = null;
+var privkeycarol = null;
 
 // Run this to test locally and enable thetacli
 // cf enable-ssh theta-privatenet
@@ -126,6 +133,27 @@ async function doCredStore() {
 			privkeyx = {
 				name: "privkeyx", 
 				value: "0x784ddc9e534dc0a954784efb3540e521f9663f78910791622f78b1ee72ae3fae", 
+				username: "built-in", 
+				metadata: "{\"url\": \"https://www.example.com/path\"}",
+				status: "built-in"
+			};
+			privkeyalice = {
+				name: "privkeyalice", 
+				value: "0x93a90ea508331dfdf27fb79757d4250b4e84954927ba0073cd67454ac432c737", 
+				username: "built-in", 
+				metadata: "{\"url\": \"https://www.example.com/path\"}",
+				status: "built-in"
+			};
+			privkeybob = {
+				name: "privkeybob", 
+				value: "0x8bd65c4780c5f0b45930852e319cdbb0c44f1600f9a9e7f10778125cc14f02f3", 
+				username: "built-in", 
+				metadata: "{\"url\": \"https://www.example.com/path\"}",
+				status: "built-in"
+			};
+			privkeycarol = {
+				name: "privkeycarol", 
+				value: "0x1610d51f271d9588ffd6e0f4d89a271428be0a89a12633474d21233c10c09eb1", 
 				username: "built-in", 
 				metadata: "{\"url\": \"https://www.example.com/path\"}",
 				status: "built-in"
@@ -238,6 +266,12 @@ app.get("/trustee/links", function (req, res) {
 	responseStr += "<a href=\"/trustee/interact-with-last-contract\" target=\"_blank\">interact-with-last-contract</a> Interact with Last Contract<br />";
 
 	responseStr += "<br />";
+
+	responseStr += "<a href=\"/trustee/micro-payments\" target=\"_blank\">micro-payments</a> micro-payment Accounts Status<br />";
+	responseStr += "<a href=\"/trustee/reserve-fund\" target=\"_blank\">reserve-fund</a> Create Reserve Fund<br />";
+	responseStr += "<a href=\"/trustee/service-payment\" target=\"_blank\">service-payment</a> Service Payment<br />";
+
+	responseStr += "<br />";
 	responseStr += "<a href=\"/\">Return to home page.</a><br />";
 	responseStr += "</body></html>";
 	res.status(200).send(responseStr);
@@ -293,12 +327,36 @@ app.get("/trustee/get-account", async function (req, res) {
 	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><br />";
 	responseStr += "<a href=\"/trustee/links\">Back to Links page.</a><br />";
 
+	var addr = address;
+	if (req.query) {
+
+		if (req.query.addr) {
+
+			switch (req.query.addr) {
+				case "Alice":
+					addr = Alice;
+					break;
+				case "Bob":
+					addr = Bob;
+					break;
+				case "Carol":
+					addr = Carol;
+					break;
+				case "2":
+					addr = address2;
+					break;
+				default:
+					addr = address;
+			}
+		}
+	}
+
 	// thetacli query account --address=2E833968E5bB786Ae419c4d13189fB081Cc43bab | jq .coins
-	var account = await provider.getAccount(address);
+	var account = await provider.getAccount(addr);
 	console.log("account :" + JSON.stringify(account.coins,null,2));
 
 	responseStr += "<pre>\n";
-	responseStr += "account  : " + address + "\n";
+	responseStr += "account  : " + addr + "\n";
 	responseStr += JSON.stringify(account.coins,null,2) + "\n";
 	responseStr += "theta:  " + (account.coins.thetawei / 1000000000000000000) + "\n";
 	responseStr += "tfuel: " + (account.coins.tfuelwei / 1000000000000000000) + "\n";
@@ -370,6 +428,10 @@ app.get("/trustee/send-theta", async function (req, res) {
 		var from = address;
 		var to = address2;
 		var use_privkey = privkey;
+		var thetaWeiToSend = 0;
+		var tfuelWeiToSend = 0;
+
+		const ten18 = (new BigNumber(10)).pow(18); // 10^18, 1 Theta = 10^18 ThetaWei, 1 Gamma = 10^ TFuelWei
 
 		if (req.query && req.query.reverse && (req.query.reverse == "true")) {
 			from = address2;
@@ -377,17 +439,66 @@ app.get("/trustee/send-theta", async function (req, res) {
 			use_privkey = privkey2;
 		}
 
+		if (req.query) {
+
+			if (req.query.from) {
+
+				switch (req.query.from) {
+					case "Alice":
+						from = Alice;
+						use_privkey = privkeyalice;
+						break;
+					case "Bob":
+						from = Bob;
+						use_privkey = privkeybob;
+						break;
+					case "Carol":
+						from = Carol;
+						use_privkey = privkeycarol;
+						break;
+					default:
+						from = address;
+						use_privkey = privkey;
+				}
+			}
+
+			if (req.query.to) {
+
+				switch (req.query.to) {
+					case "Alice":
+						to = Alice;
+						break;
+					case "Bob":
+						to = Bob;
+						break;
+					case "Carol":
+						to = Carol;
+						break;
+					default:
+						from = address2;
+				}
+			}
+
+			if (req.query.theta) {
+				thetaWeiToSend = (new BigNumber(req.query.theta)).multipliedBy(ten18);
+			}
+			else {
+				thetaWeiToSend = (new BigNumber(1.0)).multipliedBy(ten18);
+			}
+
+			if (req.query.tfuel) {
+				tfuelWeiToSend = (new BigNumber(req.query.tfuel)).multipliedBy(ten18);
+			}
+			else {
+				tfuelWeiToSend = (new BigNumber(10.0)).multipliedBy(ten18);
+			}
+		}
+
 		const count = await provider.getTransactionCount(from);
 		responseStr += "last sequence count :" + count + "\n";
 
 		const wallet = new Wallet(use_privkey.value);
 		const connectedWallet = wallet.connect(provider);
-
-		const ten18 = (new BigNumber(10)).pow(18); // 10^18, 1 Theta = 10^18 ThetaWei, 1 Gamma = 10^ TFuelWei
-
-		const thetaWeiToSend = (new BigNumber(1.0)).multipliedBy(ten18);
-
-		const tfuelWeiToSend = (new BigNumber(10.0)).multipliedBy(ten18);
 
 		const txData = {
 			from: from,
@@ -406,7 +517,7 @@ app.get("/trustee/send-theta", async function (req, res) {
 		responseStr += "transaction :" + JSON.stringify(transaction,null,2) + "\n";
 		
 		const tfuelperusd = 0.335824;	// As of 2021-04-29
-		const feetfuel = 0.0001;
+		const feetfuel = 0.3;
 		const feeincents = ( ( tfuelperusd * feetfuel ) * 100 );
 		responseStr += "\nsendTransaction fee: " + feeincents + " cents\n";
 	
@@ -731,6 +842,52 @@ app.get("/trustee/tfuelusd", async function (req, res) {
 	res.status(200).send(responseStr);
 });
 
+
+
+app.get("/trustee/micro-payments", async function (req, res) {
+
+	var responseStr = "";
+	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><br />";
+	responseStr += "<a href=\"/trustee/links\">Back to Links page.</a><br />";
+
+	responseStr += "<pre>\n";
+
+	try {
+		var alice = await provider.getAccount(Alice);
+		console.log("alice :" + JSON.stringify(alice,null,2));
+		
+		responseStr += "alice  : " + Alice + "\n";
+		responseStr += JSON.stringify(alice,null,2) + "\n";
+		responseStr += "theta:  " + (alice.coins.thetawei / 1000000000000000000) + "\n";
+		responseStr += "tfuel: " + (alice.coins.tfuelwei / 1000000000000000000) + "\n";
+
+		var bob = await provider.getAccount(Bob);
+		console.log("bob :" + JSON.stringify(bob,null,2));
+		
+		responseStr += "bob  : " + Bob + "\n";
+		responseStr += JSON.stringify(bob.coins,null,2) + "\n";
+		responseStr += "theta:  " + (bob.coins.thetawei / 1000000000000000000) + "\n";
+		responseStr += "tfuel: " + (bob.coins.tfuelwei / 1000000000000000000) + "\n";
+
+		var carol = await provider.getAccount(Carol);
+		console.log("carol :" + JSON.stringify(carol,null,2));
+		
+		responseStr += "carol  : " + Carol + "\n";
+		responseStr += JSON.stringify(carol.coins,null,2) + "\n";
+		responseStr += "theta:  " + (carol.coins.thetawei / 1000000000000000000) + "\n";
+		responseStr += "tfuel: " + (carol.coins.tfuelwei / 1000000000000000000) + "\n";
+
+	} catch(e) {
+		responseStr += "error : " + e + "\n";
+	}
+
+	responseStr += "</pre>\n";
+		
+	responseStr += "<a href=\"/\">Return to home page.</a><br />";
+	responseStr += "</body></html>";
+	res.status(200).send(responseStr);
+});
+
 app.get("/trustee/reserve-fund", async function (req, res) {
 
 	var responseStr = "";
@@ -813,6 +970,20 @@ app.get("/trustee/reserve-fund", async function (req, res) {
 	res.status(200).send(responseStr);
 });
 
+app.get("/trustee/service-payment", async function (req, res) {
+
+	var responseStr = "";
+	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><br />";
+	responseStr += "<a href=\"/trustee/links\">Back to Links page.</a><br />";
+
+	responseStr += "<pre>\n";
+
+	responseStr += "</pre>\n";
+	
+	responseStr += "<a href=\"/\">Return to home page.</a><br />";
+	responseStr += "</body></html>";
+	res.status(200).send(responseStr);
+});
 
 
 app.get("/trustee/copy-me", async function (req, res) {
