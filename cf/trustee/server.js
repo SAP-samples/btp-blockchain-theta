@@ -24,6 +24,7 @@ const Wallet = thetajs.Wallet;
 const {HttpProvider} = thetajs.providers;
 const SendTransaction = thetajs.transactions.SendTransaction;
 const ReserveFundTransaction = thetajs.transactions.ReserveFundTransaction;
+const ServicePaymentTransaction = thetajs.transactions.ServicePaymentTransaction;
 const Contract = thetajs.Contract;
 const ContractFactory = thetajs.ContractFactory;
 const {ChainIds} = thetajs.networks;
@@ -267,9 +268,14 @@ app.get("/trustee/links", function (req, res) {
 
 	responseStr += "<br />";
 
+	responseStr += "<a href=\"/trustee/send-theta?from=Alice&to=Bob&theta=0&tfuel=1&action=doit\" target=\"_blank\">send 1 TFuel to Bob</a><br />";
+	responseStr += "<a href=\"/trustee/send-theta?from=Alice&to=Carol&theta=0&tfuel=1&action=doit\" target=\"_blank\">send 1 TFuel to Carol</a><br />";
+	responseStr += "<br />";
+
 	responseStr += "<a href=\"/trustee/micro-payments\" target=\"_blank\">micro-payments</a> micro-payment Accounts Status<br />";
 	responseStr += "<a href=\"/trustee/reserve-fund\" target=\"_blank\">reserve-fund</a> Create Reserve Fund<br />";
-	responseStr += "<a href=\"/trustee/service-payment\" target=\"_blank\">service-payment</a> Service Payment<br />";
+	responseStr += "<a href=\"/trustee/service-payment?from=Alice&to=Bob&theta=0&tfuel=1&on_chain=no&action=doit&dry_run=yes\" target=\"_blank\">Off-Chain service-payment Alice -> Bob</a><br />";
+	responseStr += "<a href=\"/trustee/service-payment?from=Alice&to=Bob&theta=0&tfuel=1&on_chain=yes&action=doit&dry_run=yes\" target=\"_blank\">On-Chain service-payment Alice -> Bob</a><br />";
 
 	responseStr += "<br />";
 	responseStr += "<a href=\"/\">Return to home page.</a><br />";
@@ -516,6 +522,8 @@ app.get("/trustee/send-theta", async function (req, res) {
 		// transaction.inputs[0].sequence = count + 1;
 		responseStr += "transaction :" + JSON.stringify(transaction,null,2) + "\n";
 		
+		console.log("SendRequest:\n" + JSON.stringify(transaction,null,2));
+
 		const tfuelperusd = 0.335824;	// As of 2021-04-29
 		const feetfuel = 0.3;
 		const feeincents = ( ( tfuelperusd * feetfuel ) * 100 );
@@ -903,14 +911,7 @@ app.get("/trustee/reserve-fund", async function (req, res) {
 	try {
 
 		var from = address;
-		var to = address2;
 		var use_privkey = privkey;
-
-		if (req.query && req.query.reverse && (req.query.reverse == "true")) {
-			from = address2;
-			to = address;
-			use_privkey = privkey2;
-		}
 
 		const count = await provider.getTransactionCount(from);
 		responseStr += "last sequence count :" + count + "\n";
@@ -920,31 +921,28 @@ app.get("/trustee/reserve-fund", async function (req, res) {
 
 		const ten18 = (new BigNumber(10)).pow(18); // 10^18, 1 Theta = 10^18 ThetaWei, 1 Gamma = 10^ TFuelWei
 
-		const thetaWeiToSend = (new BigNumber(1.0)).multipliedBy(ten18);
-
-		const tfuelWeiToSend = (new BigNumber(10.0)).multipliedBy(ten18);
+		const tfuelWeiFund = (new BigNumber(8.0)).multipliedBy(ten18);
+		const tfuelWeiCollateral = (new BigNumber(9.0)).multipliedBy(ten18);
 
 		const txData = {
-			from: from,
-			outputs: [
-				{
-					address: to,
-					thetaWei: thetaWeiToSend,
-					tfuelWei: tfuelWeiToSend,
-                    sequence: count + 1
-				}
-			]
+			source: from,
+			fund: tfuelWeiFund,
+			collateral: tfuelWeiCollateral,
+			duration: 30,
+			resource_ids: ["die_another_day", "hello"],
+			sequence: count + 1
 		};
 		
+	
 		const transaction = new ReserveFundTransaction(txData);
 		// transaction.inputs[0].sequence = count + 1;
-		responseStr += "transaction :" + JSON.stringify(transaction,null,2) + "\n";
+
+		//transaction.source.signature = "0x51e96c910e72d59677790a9dfe5e523d371797138942519aef5baf383f381f4b6b9d8a993c02c53177a217859429bfb1b67e4bf482071a1d0e3410613f0dbc5400";
+
+		console.log("ReserveFundRequest:\n" + JSON.stringify(transaction, null, 2));
+
+		responseStr += "transaction :" + JSON.stringify(transaction, null, 2) + "\n";
 		
-		const tfuelperusd = 0.335824;	// As of 2021-04-29
-		const feetfuel = 0.0001;
-		const feeincents = ( ( tfuelperusd * feetfuel ) * 100 );
-		responseStr += "\nsendTransaction fee: " + feeincents + " cents\n";
-	
 		if (req.query && req.query.action && (req.query.action == "doit")) {
 
 			const start = startTimer();
@@ -977,6 +975,200 @@ app.get("/trustee/service-payment", async function (req, res) {
 	responseStr += "<a href=\"/trustee/links\">Back to Links page.</a><br />";
 
 	responseStr += "<pre>\n";
+
+	console.log(JSON.stringify(req.query, null, 2));
+
+	try {
+
+		var from = address;
+		var to = address2;
+		var use_sprivkey = privkey;
+		var use_tprivkey = privkey;
+		var thetaWeiToSend = 0;
+		var tfuelWeiToSend = 0;
+		var payment_seq = 1;
+		var reserve_seq = 1;
+		var on_chain = "no";
+		var dry_run = "no";
+		var resource_id = "hello";
+
+		const ten18 = (new BigNumber(10)).pow(18); // 10^18, 1 Theta = 10^18 ThetaWei, 1 Gamma = 10^ TFuelWei
+
+		if (req.query) {
+
+			if (req.query.from) {
+
+				switch (req.query.from) {
+					case "Alice":
+						from = Alice;
+						use_sprivkey = privkeyalice;
+						break;
+					case "Bob":
+						from = Bob;
+						use_sprivkey = privkeybob;
+						break;
+					case "Carol":
+						from = Carol;
+						use_sprivkey = privkeycarol;
+						break;
+					default:
+						from = address;
+						use_sprivkey = privkey;
+				}
+			}
+
+			if (req.query.to) {
+
+				switch (req.query.to) {
+					case "Alice":
+						to = Alice;
+						use_tprivkey = privkeyalice;
+						break;
+					case "Bob":
+						to = Bob;
+						use_tprivkey = privkeybob;
+						break;
+					case "Carol":
+						to = Carol;
+						use_tprivkey = privkeycarol;
+						break;
+					default:
+						from = address2;
+						use_tprivkey = privkey;
+				}
+			}
+
+			if (req.query.theta) {
+				thetaWeiToSend = (new BigNumber(req.query.theta)).multipliedBy(ten18);
+			}
+			else {
+				thetaWeiToSend = (new BigNumber(0.0)).multipliedBy(ten18);
+			}
+
+			if (req.query.tfuel) {
+				tfuelWeiToSend = (new BigNumber(req.query.tfuel)).multipliedBy(ten18);
+			}
+			else {
+				tfuelWeiToSend = (new BigNumber(1.0)).multipliedBy(ten18);
+			}
+
+			if (req.query.payment_seq) {
+				payment_seq = parseInt(req.query.payment_seq);
+			}
+
+			if (req.query.reserve_seq) {
+				reserve_seq = parseInt(req.query.reserve_seq);
+			}
+
+			if (req.query.on_chain) {
+				on_chain = req.query.on_chain;
+			}
+
+			if (req.query.dry_run && (req.query.dry_run == "yes")) {
+				dry_run = "yes";
+			}
+			else {
+				dry_run = "no";
+			}
+
+			if (req.query.resource_id) {
+				resource_id = req.query.resource_id;
+			}
+
+		}
+
+		const count = await provider.getTransactionCount(from);
+		responseStr += "last sequence count :" + count + "\n";
+
+		var swallet = thetajs.Wallet;
+		var twallet = thetajs.Wallet;
+		var connectedWallet = thetajs.Wallet;
+
+		if (on_chain == "yes") {
+			twallet = new Wallet(use_tprivkey.value);
+			connectedWallet = twallet.connect(provider);
+		}
+		else {
+			swallet = new Wallet(use_sprivkey.value);
+			connectedWallet = swallet.connect(provider);
+		}
+
+
+		// {
+		// 	"fee": {
+		// 		"thetawei": "0",
+		// 		"tfuelwei": "300000000000000000"
+		// 	},
+		// 	"source": {
+		// 		"address": "0x2e833968e5bb786ae419c4d13189fb081cc43bab",
+		// 		"coins": {
+		// 			"thetawei": "0",
+		// 			"tfuelwei": "0"
+		// 		},
+		// 		"sequence": "1",
+		// 		"signature": "0x4461422d5391f90c03988c49f456f3ff4bfece9418de59edd2cb48d177599a2c0896e597190a7216e15527d2455d4a4e2e868b0adad35cfe7f69e2e6ce116b1d00"
+		// 	},
+		// 	"target": {
+		// 		"address": "0x70f587259738cb626a1720af7038b8dcdb6a42a0",
+		// 		"coins": {
+		// 			"thetawei": "0",
+		// 			"tfuelwei": "0"
+		// 		},
+		// 		"sequence": "0",
+		// 		"signature": "0x756e7369676e6564"
+		// 	},
+		// 	"payment_sequence": "1",
+		// 	"reserve_sequence": "1",
+		// 	"resource_id": "hello"
+		// }
+		
+		const txData = {
+			source: from,
+			target: to,
+			payment_seq: payment_seq,
+			reserve_seq: reserve_seq,
+			resource_id: resource_id,
+			theta: thetaWeiToSend,
+			tfuel: tfuelWeiToSend
+		};
+		
+		const transaction = new ServicePaymentTransaction(txData);
+		// transaction.inputs[0].sequence = count + 1;
+
+		if (on_chain == "yes") {
+			transaction.setSourceSignature("passed in");
+			transaction.setTargetSignature(to);
+		}
+		else {
+			transaction.setSourceSignature(from);
+			transaction.setTargetSignature("unsigned");
+		}
+
+		responseStr += "transaction :" + JSON.stringify(transaction,null,2) + "\n";
+		
+		console.log("ServicePayment:\n" + JSON.stringify(transaction,null,2));
+
+		const tfuelperusd = 0.335824;	// As of 2021-04-29
+		const feetfuel = 0.3;
+		const feeincents = ( ( tfuelperusd * feetfuel ) * 100 );
+		responseStr += "\nsendTransaction fee: " + feeincents + " cents\n";
+	
+		if (req.query && req.query.action && (req.query.action == "doit")) {
+
+			const start = startTimer();
+
+			const txresult = await connectedWallet.sendTransaction(transaction);
+			responseStr += "sendTransaction duration: " + endTimer(start) + " ms\n";
+			responseStr += "txresult :" + JSON.stringify(txresult,null,2) + "\n";
+
+			const blockHash = txresult.hash;
+			responseStr += "blockHash :" + JSON.stringify(blockHash,null,2) + "\n";
+			const block = await provider.getTransaction(blockHash);
+			responseStr += "block :" + JSON.stringify(block,null,2) + "\n";
+		}
+	} catch(e) {
+		responseStr += "error : " + e + "\n";
+	}
 
 	responseStr += "</pre>\n";
 	

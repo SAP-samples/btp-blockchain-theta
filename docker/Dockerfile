@@ -5,13 +5,18 @@
 #
 
 # Pull base image.
-FROM ubuntu:18.04
+#FROM ubuntu:18.04
+FROM ubuntu:20.04
 
+ARG DEBIAN_FRONTEND=noninteractive
 # Install.
 RUN \
   sed -i 's/# \(.*multiverse$\)/\1/g' /etc/apt/sources.list \
+#  && apt-key list \
+#  && apt-get -o Acquire::AllowInsecureRepositories=true -o Acquire::AllowDowngradeToInsecureRepositories=true install gnupg gnupg2 gnupg1 \
+#  && apt-key update \
   && apt-get update \
-#  && apt -o Acquire::AllowInsecureRepositories=true -o Acquire::AllowDowngradeToInsecureRepositories=true update \
+  #  && apt -o Acquire::AllowInsecureRepositories=true -o Acquire::AllowDowngradeToInsecureRepositories=true update \
   && echo "..."
 
 RUN \
