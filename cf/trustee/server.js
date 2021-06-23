@@ -25,9 +25,11 @@ const {HttpProvider} = thetajs.providers;
 const SendTransaction = thetajs.transactions.SendTransaction;
 const ReserveFundTransaction = thetajs.transactions.ReserveFundTransaction;
 const ServicePaymentTransaction = thetajs.transactions.ServicePaymentTransaction;
+const SignatureFromBytes = thetajs.signers.SignatureFromBytes;
 const Contract = thetajs.Contract;
 const ContractFactory = thetajs.ContractFactory;
-const {ChainIds} = thetajs.networks;
+const { ChainIds } = thetajs.networks;
+
 
 const AddressAdmin = "<ADMIN_WALLET_ADDRESS>";
 const AddressUser1 = "<USER1_WALLET_ADDRESS>";
@@ -273,9 +275,9 @@ app.get("/trustee/links", function (req, res) {
 	responseStr += "<br />";
 
 	responseStr += "<a href=\"/trustee/micro-payments\" target=\"_blank\">micro-payments</a> micro-payment Accounts Status<br />";
-	responseStr += "<a href=\"/trustee/reserve-fund\" target=\"_blank\">reserve-fund</a> Create Reserve Fund<br />";
-	responseStr += "<a href=\"/trustee/service-payment?from=Alice&to=Bob&theta=0&tfuel=1&on_chain=no&action=doit&dry_run=yes\" target=\"_blank\">Off-Chain service-payment Alice -> Bob</a><br />";
-	responseStr += "<a href=\"/trustee/service-payment?from=Alice&to=Bob&theta=0&tfuel=1&on_chain=yes&action=doit&dry_run=yes\" target=\"_blank\">On-Chain service-payment Alice -> Bob</a><br />";
+	responseStr += "<a href=\"/trustee/reserve-fund\" target=\"_blank\">reserve-fund</a> Create Reserve Fund <a href=\"/trustee/reserve-fund?action=doit\" target=\"_blank\">doit</a><br />";
+	responseStr += "<a href=\"/trustee/service-payment?from=Alice&to=Bob&theta=0&tfuel=9&on_chain=false&action=doit&dry_run=true\" target=\"_blank\">Off-Chain service-payment Alice -> Bob</a><br />";
+	responseStr += "<a href=\"/trustee/service-payment?from=Alice&to=Bob&theta=0&tfuel=9&on_chain=true&action=doit&dry_run=false\" target=\"_blank\">On-Chain service-payment Alice -> Bob</a><br />";
 
 	responseStr += "<br />";
 	responseStr += "<a href=\"/\">Return to home page.</a><br />";
@@ -986,11 +988,12 @@ app.get("/trustee/service-payment", async function (req, res) {
 		var use_tprivkey = privkey;
 		var thetaWeiToSend = 0;
 		var tfuelWeiToSend = 0;
-		var payment_seq = 1;
-		var reserve_seq = 1;
-		var on_chain = "no";
-		var dry_run = "no";
+		var payment_seq = "4";
+		var reserve_seq = "5";
+		var on_chain = "false";
+		var dry_run = "false";
 		var resource_id = "hello";
+		var src_sig = "";
 
 		const ten18 = (new BigNumber(10)).pow(18); // 10^18, 1 Theta = 10^18 ThetaWei, 1 Gamma = 10^ TFuelWei
 
@@ -1053,26 +1056,32 @@ app.get("/trustee/service-payment", async function (req, res) {
 			}
 
 			if (req.query.payment_seq) {
-				payment_seq = parseInt(req.query.payment_seq);
+				// payment_seq = parseInt(req.query.payment_seq);
+				payment_seq = req.query.payment_seq;
 			}
 
 			if (req.query.reserve_seq) {
-				reserve_seq = parseInt(req.query.reserve_seq);
+				// reserve_seq = parseInt(req.query.reserve_seq);
+				reserve_seq = req.query.reserve_seq;
 			}
 
 			if (req.query.on_chain) {
 				on_chain = req.query.on_chain;
 			}
 
-			if (req.query.dry_run && (req.query.dry_run == "yes")) {
-				dry_run = "yes";
+			if (req.query.dry_run && (req.query.dry_run == "true")) {
+				dry_run = "true";
 			}
 			else {
-				dry_run = "no";
+				dry_run = "false";
 			}
 
 			if (req.query.resource_id) {
 				resource_id = req.query.resource_id;
+			}
+
+			if (req.query.src_sig) {
+				src_sig = req.query.src_sig;
 			}
 
 		}
@@ -1084,7 +1093,7 @@ app.get("/trustee/service-payment", async function (req, res) {
 		var twallet = thetajs.Wallet;
 		var connectedWallet = thetajs.Wallet;
 
-		if (on_chain == "yes") {
+		if (on_chain == "true") {
 			twallet = new Wallet(use_tprivkey.value);
 			connectedWallet = twallet.connect(provider);
 		}
@@ -1135,12 +1144,26 @@ app.get("/trustee/service-payment", async function (req, res) {
 		const transaction = new ServicePaymentTransaction(txData);
 		// transaction.inputs[0].sequence = count + 1;
 
-		if (on_chain == "yes") {
-			transaction.setSourceSignature("passed in");
-			transaction.setTargetSignature(to);
+		if (on_chain == "true") {
+			src_sig = "0xaac7a8ec024f701b23cd1633035de3745383a33ec2dbd8d9a3c8434d7ee78c9d0fe1ff7482ec8b7d56616a96952b80fab55e23a136ce9d1dffdf9ff5968d9d8d00";
+			transaction.setSourceSignature(src_sig);
+			var tsig = connectedWallet.signMessage(transaction.targetSignBytes(provider.getChainId()));
+			tsig = "0x7376388d8b9f2b7ca5f15470e0ac93f4c79711e54938a02c2d51dc4d50373a0c64a0d63ab79fb992a0ed3e1b553f26be069825a9c34b58b3057af5fea37a783c01";
+			transaction.setTargetSignature(tsig);
 		}
 		else {
-			transaction.setSourceSignature(from);
+			// GO fromAddress = common.HexToAddress(fromFlag)
+			// GO ssig, err := swallet.Sign(fromAddress, servicePaymentTx.SourceSignBytes(chainIDFlag))
+			//const fromAddress = thetajs.utils.bytesToHex(from);
+			
+			const ssig = connectedWallet.signMessage(transaction.sourceSignBytes(provider.getChainId()));
+			//const ssig = from;
+			transaction.setSourceSignature(ssig);
+			// GO tsig = crypto.SignatureFromBytes([]byte("unsigned"));
+			//const tsig = connectedWallet.signMessage("unsigned");
+			//const tsig = connectedWallet.signTransaction(transaction);
+			//const tsig = transaction.signBytes("unsigned");
+			//transaction.setTargetSignature(tsig);
 			transaction.setTargetSignature("unsigned");
 		}
 
@@ -1153,7 +1176,7 @@ app.get("/trustee/service-payment", async function (req, res) {
 		const feeincents = ( ( tfuelperusd * feetfuel ) * 100 );
 		responseStr += "\nsendTransaction fee: " + feeincents + " cents\n";
 	
-		if (req.query && req.query.action && (req.query.action == "doit")) {
+		if (req.query && req.query.action && (req.query.action == "doit") && (on_chain == "true") && (dry_run == "false") ) {
 
 			const start = startTimer();
 
@@ -1166,7 +1189,8 @@ app.get("/trustee/service-payment", async function (req, res) {
 			const block = await provider.getTransaction(blockHash);
 			responseStr += "block :" + JSON.stringify(block,null,2) + "\n";
 		}
-	} catch(e) {
+	} catch (e) {
+		console.log("error:\n" + e);
 		responseStr += "error : " + e + "\n";
 	}
 
