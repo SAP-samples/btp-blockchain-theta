@@ -37,7 +37,7 @@ modules:
       properties:
          url: ${default-url}
 
-# cf push theta-trustee -p trustee -n theta-trustee -d cfapps.us21.hana.ondemand.com -k 512M -m 256M
+# cf push theta-trustee -p trustee -n theta-dev-theta-trustee -d cfapps.eu10.hana.ondemand.com -k 512M -m 256M --no-start
  - name: theta-trustee
    type: nodejs
    path: trustee
