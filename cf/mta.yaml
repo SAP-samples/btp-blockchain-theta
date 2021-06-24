@@ -55,6 +55,7 @@ modules:
    requires:
     - name: theta-uaa
     - name: theta-cred
+    - name: theta-mrbyor
     - name: theta_privatenet_api
       group: destinations
       properties:
@@ -153,9 +154,22 @@ resources:
    parameters:
       service: credstore
       # Use standard plan for Productive Accounts
-      # service-plan: standard
+      service-plan: standard
       # Use trial plan for Trial Accounts
-      service-plan: trial
+      # service-plan: trial
       service-name: THETA_CRED
+
+ - name: theta-mrbyor
+   type: org.cloudfoundry.managed-service
+   parameters:
+      service: market-rates-byor
+      # Use default plan for Productive Accounts
+      # service-plan: default
+      # Not available on Trial Accounts or non-AWS regions
+      service-plan: default
+      service-name: THETA_MRO
+      config:
+         serviceInstanceName: theta-binance #name of your service instance
+         retentionPeriodInDays: 90 #number of days after which you want older records to be deleted.
 
 ### New Resources Here ###
