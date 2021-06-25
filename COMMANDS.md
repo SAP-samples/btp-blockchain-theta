@@ -334,3 +334,17 @@ Failed to get account details: json: cannot unmarshal number into Go value of ty
 
 cf restart theta-privatenet
 
+https://git-scm.com/book/en/v2/Git-Tools-Submodules
+Publishing Submodule Changes
+
+cd ~/git/btp-blockchain-theta/cf/trustee/lib/theta-js
+
+git add .
+git commit -m "service payment signing broken"
+
+cd ~/git/btp-blockchain-theta
+
+git add .
+git commit -m "service payment signing broken"
+
+git push --recurse-submodules=on-demand
