@@ -29,10 +29,10 @@ request(options, function (error, response) {
     console.log("");
 
     var request2 = require('request');
-    // let key1 = 'BTC';
+    let key1 = 'BTC';
     // let key1 = 'ETH';
     //let key1 = 'THETA';
-    let key1 = 'TFUEL';
+    //let key1 = 'TFUEL';
     let key2 = 'USDT';
     let symbol = key1 + key2;
     //let symbol = 'THETAUSDT';
@@ -75,13 +75,23 @@ request(options, function (error, response) {
             //     "additionalKey": null
             //   },
 
+            // https://help.sap.com/viewer/64e0eccf2d424543be76606dd5e5e460/LATEST/en-US/da46af643f31402d9002145ed0a7fe71.html
+            // Restrictions
+            // If you make a call with a date range specified, you must wait until that request is processed before making another call with date ranges, whether or not they are for latest rates or other date ranges. Daily calls with no dates will work concurrently.
+            
+            // To download data from SAP S/4HANA systems, ensure that the<key1> and <key2> fields combined do not exceed 15 characters while you upload data.
+            
+            // The tilde ( ~ ) and the colon ( : ) are reserved characters. Do not use these characters in your upload payloads.
+            
+            // If a market data type contains values for both the key1 and key2 fields, the download request must be written in the following format: <key1>~<key2>:<market data category>. If the request does not have a key2 field, the format must be as follows: <key1>:<market data category>. To see code samples for individual market data types, see Market Data Types.
+
               let rate = {
                 "providerCode": "Binance",
                 "marketDataSource": "Binance",
                 "marketDataCategory": "01",
                 "key1": key1,
                 "key2": key2,
-                "marketDataProperty": "C",
+                "marketDataProperty": "M",
                 "effectiveDate": rate_date.getUTCFullYear() + "-" + zeroPad((rate_date.getUTCMonth() + 1),2) + "-" + zeroPad((rate_date.getUTCDate()),2),
                 "effectiveTime": "00:00:00",
                 "marketDataValue": parseFloat(result[4]),

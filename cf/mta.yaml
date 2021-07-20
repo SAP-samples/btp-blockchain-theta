@@ -63,6 +63,34 @@ modules:
          url: ~{url}
          forwardAuthToken: true
 
+# cf push theta-offchain -p offchain -n theta-dev-theta-offchain -d cfapps.eu10.hana.ondemand.com -k 512M -m 256M --no-start
+ - name: theta-offchain
+   type: go
+   path: offchain
+   properties:
+      GOPACKAGENAME: offchain   
+   build-parameters:
+      ignore: ["vendor/"]
+   parameters:
+      memory: 256M
+      disk-quota: 512M
+      #host: ${org}-${space}-theta-offchain
+      #domain: cfapps.us21.hana.ondemand.com
+   provides:
+    - name: theta_offchain_api
+      properties:
+         url: ${default-url}
+   requires:
+    - name: theta-uaa
+    - name: theta-cred
+    - name: theta-mrbyor
+    - name: theta_privatenet_api
+      group: destinations
+      properties:
+         name: theta_privatenet_be
+         url: ~{url}
+         forwardAuthToken: true
+
 # cf push theta-app -p app -n theta-app -d cfapps.us21.hana.ondemand.com -k 256M -m 256M
  - name: theta-app
    type: html5
