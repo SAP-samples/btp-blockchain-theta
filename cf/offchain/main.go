@@ -7,6 +7,7 @@ import (
     "github.com/spf13/viper"
     // geometry "github.com/andrewlunde/thetaoffchaingo"
     geometry "github.com/sap-samples/btp-blockchain-theta/thetaoffchaingo"
+    account "github.com/sap-samples/btp-blockchain-theta/thetaoffchaingo"
 )
 
 func helloHandler(w http.ResponseWriter, r *http.Request) {
@@ -65,6 +66,13 @@ func main() {
 		9, 2,
 	}
 	fmt.Println(ellipse.GetEccentricity())
+
+    fmt.Println(account.Ping())
+
+    endpoint := "https://theta-dev-theta-privatenet.cfapps.eu10.hana.ondemand.com/rpc"
+    address := "0x2E833968E5bB786Ae419c4d13189fB081Cc43bab"
+
+    account.getAccount(endpoint,address)
 
     fileServer := http.FileServer(http.Dir("./static")) 
     http.Handle("/", fileServer) 
