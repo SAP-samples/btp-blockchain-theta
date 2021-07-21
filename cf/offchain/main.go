@@ -5,8 +5,8 @@ import (
     "log"
     "net/http"
     "github.com/spf13/viper"
-    geometry "github.com/andrewlunde/thetaoffchaingo"
-
+    // geometry "github.com/andrewlunde/thetaoffchaingo"
+    geometry "github.com/sap-samples/btp-blockchain-theta/thetaoffchaingo"
 )
 
 func helloHandler(w http.ResponseWriter, r *http.Request) {
