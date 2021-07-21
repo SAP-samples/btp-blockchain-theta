@@ -1,4 +1,4 @@
-package thetaoffchaingo
+package account
 
 import (
 	"encoding/json"
