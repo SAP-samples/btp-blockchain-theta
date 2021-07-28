@@ -276,8 +276,8 @@ app.get("/trustee/links", function (req, res) {
 
 	responseStr += "<a href=\"/trustee/micro-payments\" target=\"_blank\">micro-payments</a> micro-payment Accounts Status<br />";
 	responseStr += "<a href=\"/trustee/reserve-fund\" target=\"_blank\">reserve-fund</a> Create Reserve Fund <a href=\"/trustee/reserve-fund?action=doit\" target=\"_blank\">doit</a><br />";
-	responseStr += "<a href=\"/trustee/service-payment?from=Alice&to=Bob&theta=0&tfuel=9&on_chain=false&action=doit&dry_run=true\" target=\"_blank\">Off-Chain service-payment Alice -> Bob</a><br />";
-	responseStr += "<a href=\"/trustee/service-payment?from=Alice&to=Bob&theta=0&tfuel=9&on_chain=true&action=doit&dry_run=false\" target=\"_blank\">On-Chain service-payment Alice -> Bob</a><br />";
+	responseStr += "<a href=\"/trustee/service-payment?from=Alice&to=Bob&payment_seq=1&reserve_seq=11&resource_id=rid1000001&tfuel=20&on_chain=false&action=doit&dry_run=true\" target=\"_blank\">Off-Chain service-payment Alice -> Bob</a><br />";
+	responseStr += "<a href=\"/trustee/service-payment?from=Alice&to=Bob&payment_seq=1&reserve_seq=11&resource_id=rid1000001&tfuel=20&on_chain=true&action=doit&dry_run=true&src_sig=0x0e79a754d08f29afada5ec5c9949e7898fe3cb6cdcafc13e16f0a4c560e22e6947332468d4ce0e8d24e64069dfa00bcf95e25611552ac93c83878d3b84c770341b\" target=\"_blank\">On-Chain service-payment Alice -> Bob</a><br />";
 
 	responseStr += "<br />";
 	responseStr += "<a href=\"/\">Return to home page.</a><br />";
@@ -867,7 +867,21 @@ app.get("/trustee/micro-payments", async function (req, res) {
 		console.log("alice :" + JSON.stringify(alice,null,2));
 		
 		responseStr += "alice  : " + Alice + "\n";
-		responseStr += JSON.stringify(alice,null,2) + "\n";
+		responseStr += JSON.stringify(alice, null, 2) + "\n";
+		var payment_seq = 0;
+		if (alice.reserved_funds.length > 0) {
+			responseStr += "</pre>\n";
+			alice.reserved_funds.forEach(fund => {
+				responseStr += "<strong>end_block_height: " + fund.end_block_height + "</strong><br />\n";
+				responseStr += "<strong>reserve_sequence: " + fund.reserve_sequence + "</strong><br />\n";
+				fund.resource_ids.forEach(resource_id => {
+					payment_seq = fund.transfer_records.length + 1;
+					responseStr += "<strong>resource_id: " + resource_id + "</strong> <a href=\"/trustee/service-payment?from=Alice&to=Bob&payment_seq=" + payment_seq + "&reserve_seq=" + fund.reserve_sequence + "&resource_id=" + resource_id + "&tfuel=20&on_chain=false&action=doit&dry_run=true\">Offchain payment for " + resource_id + "</a><br />\n";
+				});
+	
+			});
+			responseStr += "<pre>\n";
+		}
 		responseStr += "theta:  " + (alice.coins.thetawei / 1000000000000000000) + "\n";
 		responseStr += "tfuel: " + (alice.coins.tfuelwei / 1000000000000000000) + "\n";
 
@@ -931,7 +945,7 @@ app.get("/trustee/reserve-fund", async function (req, res) {
 			fund: tfuelWeiFund,
 			collateral: tfuelWeiCollateral,
 			duration: 30,
-			resource_ids: ["die_another_day", "hello"],
+			resource_ids: ["rid1000001", "hello"],
 			sequence: count + 1
 		};
 		
@@ -988,11 +1002,11 @@ app.get("/trustee/service-payment", async function (req, res) {
 		var use_tprivkey = privkey;
 		var thetaWeiToSend = 0;
 		var tfuelWeiToSend = 0;
-		var payment_seq = "4";
-		var reserve_seq = "5";
+		var payment_seq = "6";
+		var reserve_seq = "10";
 		var on_chain = "false";
 		var dry_run = "false";
-		var resource_id = "hello";
+		var resource_id = "rid1000001";
 		var src_sig = "";
 
 		const ten18 = (new BigNumber(10)).pow(18); // 10^18, 1 Theta = 10^18 ThetaWei, 1 Gamma = 10^ TFuelWei
@@ -1003,14 +1017,17 @@ app.get("/trustee/service-payment", async function (req, res) {
 
 				switch (req.query.from) {
 					case "Alice":
+					case "0x2E833968E5bB786Ae419c4d13189fB081Cc43bab":
 						from = Alice;
 						use_sprivkey = privkeyalice;
 						break;
 					case "Bob":
+					case "0x70f587259738cB626A1720Af7038B8DcDb6a42a0":
 						from = Bob;
 						use_sprivkey = privkeybob;
 						break;
 					case "Carol":
+					case "0xcd56123D0c5D6C1Ba4D39367b88cba61D93F5405":
 						from = Carol;
 						use_sprivkey = privkeycarol;
 						break;
@@ -1024,14 +1041,17 @@ app.get("/trustee/service-payment", async function (req, res) {
 
 				switch (req.query.to) {
 					case "Alice":
+					case "0x2E833968E5bB786Ae419c4d13189fB081Cc43bab":
 						to = Alice;
 						use_tprivkey = privkeyalice;
 						break;
 					case "Bob":
+					case "0x70f587259738cB626A1720Af7038B8DcDb6a42a0":
 						to = Bob;
 						use_tprivkey = privkeybob;
 						break;
 					case "Carol":
+					case "0xcd56123D0c5D6C1Ba4D39367b88cba61D93F5405":
 						to = Carol;
 						use_tprivkey = privkeycarol;
 						break;
@@ -1086,8 +1106,11 @@ app.get("/trustee/service-payment", async function (req, res) {
 
 		}
 
-		const count = await provider.getTransactionCount(from);
-		responseStr += "last sequence count :" + count + "\n";
+		const fcount = await provider.getTransactionCount(from);
+		responseStr += "last from sequence count :" + fcount + "\n";
+
+		const tcount = await provider.getTransactionCount(to);
+		responseStr += "last to sequence count :" + tcount + "\n";
 
 		var swallet = thetajs.Wallet;
 		var twallet = thetajs.Wallet;
@@ -1143,10 +1166,16 @@ app.get("/trustee/service-payment", async function (req, res) {
 		
 		const transaction = new ServicePaymentTransaction(txData);
 		// transaction.inputs[0].sequence = count + 1;
+		// transaction.inputs[0].sequence = 7;
+		//transaction.inputs[1].sequence = 8;
+		transaction.source.sequence = payment_seq;
+		transaction.target.sequence = 0;
+
+		var srcsig = "";
 
 		if (on_chain == "true") {
 			//src_sig = "0xaac7a8ec024f701b23cd1633035de3745383a33ec2dbd8d9a3c8434d7ee78c9d0fe1ff7482ec8b7d56616a96952b80fab55e23a136ce9d1dffdf9ff5968d9d8d00";
-			src_sig = "0x90ddf4a10daea9276d0ae9d051d599be1f4c0bd9f221ee65f9220dbe4c3952342d7cebb5bf74181eadbefc4270c5d51a2bd59546dbc0388da3b230ef859d8a541c";
+			//src_sig = "0x90ddf4a10daea9276d0ae9d051d599be1f4c0bd9f221ee65f9220dbe4c3952342d7cebb5bf74181eadbefc4270c5d51a2bd59546dbc0388da3b230ef859d8a541c";
 			transaction.setSourceSignature(src_sig);
 			var tsig = connectedWallet.signMessage(transaction.targetSignBytes(provider.getChainId()));
 			//tsig = "0x7376388d8b9f2b7ca5f15470e0ac93f4c79711e54938a02c2d51dc4d50373a0c64a0d63ab79fb992a0ed3e1b553f26be069825a9c34b58b3057af5fea37a783c01";
@@ -1159,6 +1188,7 @@ app.get("/trustee/service-payment", async function (req, res) {
 			
 			const ssig = connectedWallet.signMessage(transaction.sourceSignBytes(provider.getChainId()));
 			//const ssig = from;
+			srcsig = ssig;
 			transaction.setSourceSignature(ssig);
 			// GO tsig = crypto.SignatureFromBytes([]byte("unsigned"));
 			//const tsig = connectedWallet.signMessage("unsigned");
@@ -1190,13 +1220,18 @@ app.get("/trustee/service-payment", async function (req, res) {
 			const block = await provider.getTransaction(blockHash);
 			responseStr += "block :" + JSON.stringify(block,null,2) + "\n";
 		}
+
+		responseStr += "</pre>\n";
+		if (on_chain == "false") {
+			responseStr += "<a href=\"/trustee/service-payment?from=" + from + "&to=" + to + "&payment_seq=" + payment_seq + "&reserve_seq=" + reserve_seq + "&resource_id=" + resource_id + "&tfuel=" + req.query.tfuel + "&on_chain=true&action=doit&dry_run=false&src_sig=" + srcsig + "\" target=\"_blank\">On-Chain service-payment</a><br />";
+			responseStr += "<br />\n";
+		}
 	} catch (e) {
+		responseStr += "</pre>\n";
 		console.log("error:\n" + e);
 		responseStr += "error : " + e + "\n";
 	}
 
-	responseStr += "</pre>\n";
-	
 	responseStr += "<a href=\"/\">Return to home page.</a><br />";
 	responseStr += "</body></html>";
 	res.status(200).send(responseStr);
