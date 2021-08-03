@@ -274,10 +274,10 @@ app.get("/trustee/links", function (req, res) {
 	responseStr += "<a href=\"/trustee/send-theta?from=Alice&to=Carol&theta=0&tfuel=1&action=doit\" target=\"_blank\">send 1 TFuel to Carol</a><br />";
 	responseStr += "<br />";
 
-	responseStr += "<a href=\"/trustee/micro-payments\" target=\"_blank\">micro-payments</a> micro-payment Accounts Status<br />";
-	responseStr += "<a href=\"/trustee/reserve-fund\" target=\"_blank\">reserve-fund</a> Create Reserve Fund <a href=\"/trustee/reserve-fund?action=doit\" target=\"_blank\">doit</a><br />";
-	responseStr += "<a href=\"/trustee/service-payment?from=Alice&to=Bob&payment_seq=1&reserve_seq=11&resource_id=rid1000001&tfuel=20&on_chain=false&action=doit&dry_run=true\" target=\"_blank\">Off-Chain service-payment Alice -> Bob</a><br />";
-	responseStr += "<a href=\"/trustee/service-payment?from=Alice&to=Bob&payment_seq=1&reserve_seq=11&resource_id=rid1000001&tfuel=20&on_chain=true&action=doit&dry_run=true&src_sig=0x0e79a754d08f29afada5ec5c9949e7898fe3cb6cdcafc13e16f0a4c560e22e6947332468d4ce0e8d24e64069dfa00bcf95e25611552ac93c83878d3b84c770341b\" target=\"_blank\">On-Chain service-payment Alice -> Bob</a><br />";
+	responseStr += "<a href=\"/trustee/micro-payments\" target=\"micro-payments\">micro-payments</a> micro-payment Accounts Status<br />";
+	responseStr += "<a href=\"/trustee/reserve-fund\" target=\"micro-payments\">reserve-fund</a> Create Reserve Fund <a href=\"/trustee/reserve-fund?action=doit\" target=\"_blank\">doit</a><br />";
+	responseStr += "<a href=\"/trustee/service-payment?from=Alice&to=Bob&payment_seq=1&reserve_seq=11&resource_id=rid1000001&tfuel=20&on_chain=false&action=doit&dry_run=true\" target=\"micro-payments\">Off-Chain service-payment Alice -> Bob</a><br />";
+	responseStr += "<a href=\"/trustee/service-payment?from=Alice&to=Bob&payment_seq=1&reserve_seq=11&resource_id=rid1000001&tfuel=20&on_chain=true&action=doit&dry_run=true&src_sig=0x0e79a754d08f29afada5ec5c9949e7898fe3cb6cdcafc13e16f0a4c560e22e6947332468d4ce0e8d24e64069dfa00bcf95e25611552ac93c83878d3b84c770341b\" target=\"micro-payments\">On-Chain service-payment Alice -> Bob</a><br />";
 
 	responseStr += "<br />";
 	responseStr += "<a href=\"/\">Return to home page.</a><br />";
@@ -1186,7 +1186,15 @@ app.get("/trustee/service-payment", async function (req, res) {
 			// GO ssig, err := swallet.Sign(fromAddress, servicePaymentTx.SourceSignBytes(chainIDFlag))
 			//const fromAddress = thetajs.utils.bytesToHex(from);
 			
-			const ssig = connectedWallet.signMessage(transaction.sourceSignBytes(provider.getChainId()));
+			//const ssig = connectedWallet.signMessage(transaction.sourceSignBytes(provider.getChainId()));
+			const chain_id = provider.getChainId();
+			console.log("chain_id:\n" + chain_id);
+			var src_sign_bytes = transaction.sourceSignBytes(chain_id);
+
+			console.log("src_sign_bytes:\n" + src_sign_bytes);
+
+			const ssig = connectedWallet.signMessage(src_sign_bytes);
+			console.log("ssig:\n" + ssig);
 			//const ssig = from;
 			srcsig = ssig;
 			transaction.setSourceSignature(ssig);
@@ -1223,7 +1231,7 @@ app.get("/trustee/service-payment", async function (req, res) {
 
 		responseStr += "</pre>\n";
 		if (on_chain == "false") {
-			responseStr += "<a href=\"/trustee/service-payment?from=" + from + "&to=" + to + "&payment_seq=" + payment_seq + "&reserve_seq=" + reserve_seq + "&resource_id=" + resource_id + "&tfuel=" + req.query.tfuel + "&on_chain=true&action=doit&dry_run=false&src_sig=" + srcsig + "\" target=\"_blank\">On-Chain service-payment</a><br />";
+			responseStr += "<a href=\"/trustee/service-payment?from=" + from + "&to=" + to + "&payment_seq=" + payment_seq + "&reserve_seq=" + reserve_seq + "&resource_id=" + resource_id + "&tfuel=" + req.query.tfuel + "&on_chain=true&action=doit&dry_run=false&src_sig=" + srcsig + "\" target=\"on-chain\">On-Chain service-payment</a><br />";
 			responseStr += "<br />\n";
 		}
 	} catch (e) {
