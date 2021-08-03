@@ -13,6 +13,27 @@ import (
 	"github.com/thetatoken/theta/tx"
 )
 
+func indexHandler(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/offchain" {
+		http.Error(w, "404 not found.", http.StatusNotFound)
+		return
+	}
+
+	if r.Method != "GET" {
+		http.Error(w, "Method is not supported.", http.StatusNotFound)
+		return
+	}
+
+	// data := []byte("V1 of student's called")
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(200)
+	fmt.Fprintf(w, "<a href=\"/\">Return to home page</a><br />\n")
+	fmt.Fprintf(w, "<a href=\"/offchain/links\">GoLang Links</a><br />\n")
+	fmt.Fprintf(w, "<a href=\"/index.html\">index</a><br />\n")
+	fmt.Fprintf(w, "<a href=\"/form.html\">form</a><br />\n")
+	// w.Write(data)
+}
+
 func linksHandler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/offchain/links" {
 		http.Error(w, "404 not found.", http.StatusNotFound)
@@ -27,10 +48,11 @@ func linksHandler(w http.ResponseWriter, r *http.Request) {
 	// data := []byte("V1 of student's called")
 	w.Header().Set("Content-Type", "text/html")
 	w.WriteHeader(200)
-	fmt.Fprintf(w, "<a href=\"/offchain/links\">links</a><br />\n")
+	fmt.Fprintf(w, "<a href=\"/\">Return to home page</a><br />\n")
+	fmt.Fprintf(w, "<a href=\"/offchain/links\">GoLang Links</a><br />\n")
 	fmt.Fprintf(w, "<a href=\"/index.html\">index</a><br />\n")
 	fmt.Fprintf(w, "<a href=\"/form.html\">form</a><br />\n")
-	fmt.Fprintf(w, "<a href=\"/offchain/addr\" target=\"addr\">addr</a><br />\n")
+	fmt.Fprintf(w, "<a href=\"/offchain/acct\" target=\"acct\">acct</a><br />\n")
 	fmt.Fprintf(w, "<a href=\"/offchain/reserve\" target=\"reserve\">reserve</a><br />\n")
 	// w.Write(data)
 }
@@ -49,7 +71,7 @@ func formHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func acctHandler(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/offchain/addr" {
+	if r.URL.Path != "/offchain/acct" {
 		http.Error(w, "404 not found.", http.StatusNotFound)
 		return
 	}
@@ -224,7 +246,7 @@ func reserveHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "output: %s<br />\n", output)
 	fmt.Fprintf(w, "</pre><br />\n")
 
-	fmt.Fprintf(w, "<a href=\"/offchain/addr\">addr</a><br />\n")
+	fmt.Fprintf(w, "<a href=\"/offchain/acct\">acct</a><br />\n")
 
 }
 
@@ -323,7 +345,7 @@ func paymentHandler(w http.ResponseWriter, r *http.Request) {
 		// } else {
 
 	} else {
-		fmt.Fprintf(w, "<a href=\"/offchain/addr\">addr</a><br />\n")
+		fmt.Fprintf(w, "<a href=\"/offchain/acct\">acct</a><br />\n")
 	}
 
 }
@@ -341,19 +363,28 @@ func main() {
 
 	viper.Set("remoteRPCEndpoint", endpoint)
 	//address := "0x2E833968E5bB786Ae419c4d13189fB081Cc43bab"
-	address := tx.Alice
 
-	output := query.Account(address)
-	fmt.Println(output)
+	// address := tx.Alice
+
+	// This will cause the MTA deploy to "fail" on first attempt of this module
+	//   because it takes more time for the privatenet node to get started and
+	//   start handling connections
+	//
+	// Normally you'd be just be building the client side and connecting to the Theta mainnet
+	//
+	// output := query.Account(address)
+	// fmt.Println(output)
 
 	fileServer := http.FileServer(http.Dir("./static"))
 	http.Handle("/", fileServer)
+
+	http.HandleFunc("/offchain", indexHandler)
 
 	http.HandleFunc("/offchain/links", linksHandler)
 
 	http.HandleFunc("/offchain/form", formHandler)
 
-	http.HandleFunc("/offchain/addr", acctHandler)
+	http.HandleFunc("/offchain/acct", acctHandler)
 
 	http.HandleFunc("/offchain/reserve", reserveHandler)
 

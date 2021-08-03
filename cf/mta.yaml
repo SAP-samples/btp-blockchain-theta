@@ -117,13 +117,19 @@ modules:
    requires:
    # cf bind-service theta-app THETA_UAA
     - name: theta-uaa
-   ### New Destinations Here ###
     - name: theta_trustee_api
       group: destinations
       properties:
          name: theta_trustee_be
          url: ~{url}
          forwardAuthToken: true
+    - name: theta_offchain_api
+      group: destinations
+      properties:
+         name: theta_offchain_be
+         url: ~{url}
+         forwardAuthToken: true
+   ### New Destinations Here ###
 
 resources:
 

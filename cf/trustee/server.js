@@ -245,7 +245,7 @@ app.get("/trustee", function (req, res) {
 
 	var responseStr = "";
 	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><br />";
-	responseStr += "<a href=\"/trustee/links\">The Links page.</a><br />";
+	responseStr += "<a href=\"/trustee/links\">The NodeJS Links page.</a><br />";
 	responseStr += "<br />";
 	responseStr += "<a href=\"/\">Return to home page.</a><br />";
 	responseStr += "</body></html>";
@@ -256,7 +256,7 @@ app.get("/trustee/links", function (req, res) {
 
 	var responseStr = "";
 	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><br />";
-	responseStr += "<a href=\"/trustee/links\">Back to Links page.</a><br />";
+	responseStr += "<a href=\"/trustee/links\">Back to NodeJS Links page.</a><br />";
 	responseStr += "<br />";
 	responseStr += "<a href=\"/trustee/chkprivkey\" target=\"_blank\">Check PrivKey</a><br />";
 	responseStr += "<a href=\"/trustee/block-height\" target=\"_blank\">block-height</a><br />";

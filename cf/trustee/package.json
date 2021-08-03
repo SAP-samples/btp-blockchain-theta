@@ -1,6 +1,7 @@
 {
   "depsStash": {
     "@thetalabs/theta-js": "./lib/theta-js",
+    "@thetalabs/theta-js": "git://github.com/andrewlunde/theta-js",
     "coinbase-pro-node": "git://github.com/bennycode/coinbase-pro-node",
     "nodemon": "latest"
   },
@@ -8,7 +9,7 @@
     "@sap/hdbext": "latest",
     "@sap/xsenv": "latest",
     "@sap/xssec": "latest",
-    "@thetalabs/theta-js": "./lib/theta-js",
+    "@thetalabs/theta-js": "git://github.com/andrewlunde/theta-js",
     "bignumber.js": "^8.1.1",
     "body-parser": "latest",
     "class-validator": "^0.9.1",

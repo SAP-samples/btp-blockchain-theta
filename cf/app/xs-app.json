@@ -9,7 +9,13 @@
       "source": "(trustee/)(.*)",
       "destination": "theta_trustee_be",
       "csrfProtection": true,
-      "authenticationType": "xsuaa"
+      "authenticationType": "none"
+    },
+    {
+      "source": "(offchain/)(.*)",
+      "destination": "theta_offchain_be",
+      "csrfProtection": true,
+      "authenticationType": "none"
     },
     {
       "localDir": "resources",
