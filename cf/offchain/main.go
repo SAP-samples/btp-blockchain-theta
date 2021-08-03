@@ -7,28 +7,11 @@ import (
 	"net/http"
 	"strconv"
 
-	geometry "github.com/andrewlunde/thetaoffchaingo"
 	"github.com/spf13/viper"
-
-	"github.com/andrewlunde/greetings"
 
 	"github.com/thetatoken/theta/query"
 	"github.com/thetatoken/theta/tx"
 )
-
-func helloHandler(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/offchain/hello" {
-		http.Error(w, "404 not found.", http.StatusNotFound)
-		return
-	}
-
-	if r.Method != "GET" {
-		http.Error(w, "Method is not supported.", http.StatusNotFound)
-		return
-	}
-
-	fmt.Fprintf(w, "Hello!")
-}
 
 func linksHandler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/offchain/links" {
@@ -45,7 +28,6 @@ func linksHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	w.WriteHeader(200)
 	fmt.Fprintf(w, "<a href=\"/offchain/links\">links</a><br />\n")
-	fmt.Fprintf(w, "<a href=\"/offchain/hello\">hello</a><br />\n")
 	fmt.Fprintf(w, "<a href=\"/index.html\">index</a><br />\n")
 	fmt.Fprintf(w, "<a href=\"/form.html\">form</a><br />\n")
 	fmt.Fprintf(w, "<a href=\"/offchain/addr\" target=\"addr\">addr</a><br />\n")
@@ -355,26 +337,6 @@ func paymentHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 
-	ellipse := geometry.Ellipse{
-		9, 2,
-	}
-	fmt.Println(ellipse.GetEccentricity())
-
-	// A slice of names.
-	names := []string{"Andrew", "Dana", "Birdie"}
-
-	// Request a greeting message.
-	message, err := greetings.Hellos(names)
-	// If an error was returned, print it to the console and
-	// exit the program.
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// If no error was returned, print the returned message
-	// to the console.
-	fmt.Println(message)
-
 	endpoint := "https://theta-dev-theta-privatenet.cfapps.eu10.hana.ondemand.com/rpc"
 
 	viper.Set("remoteRPCEndpoint", endpoint)
@@ -386,8 +348,6 @@ func main() {
 
 	fileServer := http.FileServer(http.Dir("./static"))
 	http.Handle("/", fileServer)
-
-	http.HandleFunc("/offchain/hello", helloHandler)
 
 	http.HandleFunc("/offchain/links", linksHandler)
 
