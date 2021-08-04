@@ -72,7 +72,7 @@ modules:
    build-parameters:
       ignore: ["vendor/"]
    parameters:
-      memory: 256M
+      memory: 1G
       disk-quota: 512M
       #host: ${org}-${space}-theta-offchain
       #domain: cfapps.us21.hana.ondemand.com
