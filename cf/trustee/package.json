@@ -3,19 +3,25 @@
     "@thetalabs/theta-js": "./lib/theta-js",
     "@thetalabs/theta-js": "git://github.com/andrewlunde/theta-js",
     "coinbase-pro-node": "git://github.com/bennycode/coinbase-pro-node",
+    "body-parser": "latest",
     "nodemon": "latest"
   },
   "dependencies": {
     "@sap/hdbext": "latest",
     "@sap/xsenv": "latest",
     "@sap/xssec": "latest",
+    "@sap/sbss": "latest",
+    "assert": "latest",
     "@thetalabs/theta-js": "git://github.com/andrewlunde/theta-js",
     "bignumber.js": "^8.1.1",
-    "body-parser": "latest",
     "class-validator": "^0.9.1",
     "coinbase-pro-node": "^3.0.5",
     "date-fns": "^2.22.1",
-    "express": "~4.16.0",
+    "express": "~4.16.4",
+    "content-type": "latest",
+    "raw-body": "latest",
+    "body": "latest",
+    "sprintf-js": "latest",
     "isomorphic-fetch": "^3.0.0",
     "jayson": "^2.1.2",
     "morphism": "^1.10.0",
@@ -33,7 +39,7 @@
   "main": "server.js",
   "name": "nodejs",
   "scripts": {
-    "start": "node server.js"
+    "start": "nodemon server.js"
   },
   "version": "1.0.0",
   "devDependencies": {

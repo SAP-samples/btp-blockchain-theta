@@ -97,3 +97,8 @@ class ReserveFundTransaction extends BaseTransaction{
 git tag v3.0 -a -m "Part 3"
 git push origin v3.0
 ```
+
+
+Might need to simulate a oauth token exchange for client 
+https://www.npmjs.com/package/@sap/sbss
+

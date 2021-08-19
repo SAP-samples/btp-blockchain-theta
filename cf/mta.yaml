@@ -55,11 +55,19 @@ modules:
    requires:
     - name: theta-uaa
     - name: theta-cred
-#    - name: theta-mrbyor
+   #  - name: theta-pgsql
+   #  - name: theta-hdb
+   #  - name: theta-mrbyor
     - name: theta_privatenet_api
       group: destinations
       properties:
          name: theta_privatenet_be
+         url: ~{url}
+         forwardAuthToken: true
+    - name: theta_offchain_api
+      group: destinations
+      properties:
+         name: theta_offchain_be
          url: ~{url}
          forwardAuthToken: true
 
@@ -83,7 +91,7 @@ modules:
    requires:
     - name: theta-uaa
     - name: theta-cred
-#    - name: theta-mrbyor
+   #  - name: theta-mrbyor
     - name: theta_privatenet_api
       group: destinations
       properties:
@@ -181,7 +189,9 @@ resources:
              - "$XSAPPNAME.User"
          oauth2-configuration:
             redirect-uris: 
-             - "http*://*.cfapps.us21.hana.ondemand.com/**"
+             - "http://localhost:*/**"
+             - "http*://*.*.trial.applicationstudio.cloud.sap/**"
+             - "http*://*.cfapps.*.hana.ondemand.com/**"
 
  - name: theta-cred
    type: org.cloudfoundry.managed-service
@@ -192,6 +202,29 @@ resources:
       # Use trial plan for Trial Accounts
       # service-plan: trial
       service-name: THETA_CRED
+
+#  - name: theta-pgsql
+#    type: org.cloudfoundry.managed-service
+#    parameters:
+#       service: postgresql
+#       service-plan: v9.6-dev
+#       service-name: THETA_PGSQL
+#       tag: sbss1
+#       tags: sbss2
+#       config:
+#          tag: sbss3
+#          tags: sbss4
+
+#  - name: theta-hdb
+#    type: com.sap.xs.hana-schema
+#    parameters:
+#       service-name: THETA_HDB
+#       # config:
+#       #    database_id: 9ab5c11d-394e-459e-d251-bb99aa73a3da
+#       #    schema: THETA
+#       tags:
+#          tag: sbss5
+
 
 #  - name: theta-mrbyor
 #    type: org.cloudfoundry.managed-service

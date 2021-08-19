@@ -2,13 +2,20 @@
 "use strict";
 
 var xsenv = require("@sap/xsenv");
+var sbssLib = require('@sap/sbss');
+var assert = require('assert');
 var xssec = require("@sap/xssec");
 var hdbext = require("@sap/hdbext");
 var express = require("express");
+var getRawBody = require('raw-body');
+var contentType = require('content-type');
 var passport = require("passport");
 var stringifyObj = require("stringify-object");
-var bodyParser = require("body-parser");
+//var bodyParser = require("body-parser");
+var textBody = require("body")
+//var plainTextParser = require('plaintextparser');
 var randomLorem = require('random-lorem');
+var sprintf = require('sprintf-js').sprintf;
 
 var fs = require('fs');
 
@@ -93,6 +100,10 @@ destinations.forEach(destination => {
 		privateNetURL = destination.url;
 	}
 });
+
+// Re-enable this once we figure out the DB situation
+// var options = xsenv.cfServiceCredentials({ tag: 'hana'});
+// var sbss = sbssLib(options);
 
 console.log("privateNetURL: " + privateNetURL);
 
@@ -184,6 +195,25 @@ function endTimer(time) {
 }
 
 var app = express();
+
+// Deprecated : app.use(bodyParser.json())
+//app.use(textBody({ type: 'text/html', cache: false }));
+//app.use(express.urlencoded({extended: true}));
+//app.use(express.json()); // To parse the incoming requests with JSON payloads
+app.use(express.json({"type": "application/json"})); // To parse the incoming requests with JSON payloads
+app.use(express.urlencoded({"type": "application/x-www-form-urlencoded"})); // To parse the incoming requests with raw payloads
+// app.use(function (req, res, next) {
+// 	getRawBody(req, {
+// 		length: req.headers['content-length'],
+// 		limit: '1mb',
+// 		encoding: contentType.parse(req).parameters.charset
+// 	}, function (err, string) {
+// 		if (err) return next(err)
+// 		req.text = string
+// 		next()
+// 	})
+// });
+// now access req.text  
 
 var server = require("http").createServer();
 var port = process.env.PORT || 8080;
@@ -278,6 +308,10 @@ app.get("/trustee/links", function (req, res) {
 	responseStr += "<a href=\"/trustee/reserve-fund\" target=\"micro-payments\">reserve-fund</a> Create Reserve Fund <a href=\"/trustee/reserve-fund?action=doit\" target=\"_blank\">doit</a><br />";
 	responseStr += "<a href=\"/trustee/service-payment?from=Alice&to=Bob&payment_seq=1&reserve_seq=11&resource_id=rid1000001&tfuel=20&on_chain=false&action=doit&dry_run=true\" target=\"micro-payments\">Off-Chain service-payment Alice -> Bob</a><br />";
 	responseStr += "<a href=\"/trustee/service-payment?from=Alice&to=Bob&payment_seq=1&reserve_seq=11&resource_id=rid1000001&tfuel=20&on_chain=true&action=doit&dry_run=true&src_sig=0x0e79a754d08f29afada5ec5c9949e7898fe3cb6cdcafc13e16f0a4c560e22e6947332468d4ce0e8d24e64069dfa00bcf95e25611552ac93c83878d3b84c770341b\" target=\"micro-payments\">On-Chain service-payment Alice -> Bob</a><br />";
+
+	responseStr += "<br />";
+
+	responseStr += "<a href=\"/trustee/downloadMarketData\" target=\"_blank\">mimic Market Rates service</a><br />";
 
 	responseStr += "<br />";
 	responseStr += "<a href=\"/\">Return to home page.</a><br />";
@@ -1245,6 +1279,465 @@ app.get("/trustee/service-payment", async function (req, res) {
 	res.status(200).send(responseStr);
 });
 
+app.get("/trustee/downloadMarketData", async function (req, res) {
+
+	var responseStr = "";
+	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee downloadMarketData</title></head><body><h1>theta-trustee</h1><br />";
+	responseStr += "<a href=\"/trustee/links\">Back to Links page.</a><br />";
+
+	responseStr += "<pre>\n";
+
+	responseStr += "POST to this URL with MimeType application/json and body.\n";
+	
+	var responseObj = [
+		{
+			"providerCode": "BINANCE",
+			"marketDataSource": "BINANCE",
+			"marketDataCategory": "01",
+			"marketDataKey": "EUR~USD",
+			"marketDataProperty": "C",
+			"fromDate": "0000-00-00",
+			"fromTime": "00:00:00",
+			"toDate": "0000-00-00",
+			"toTime": "00:00:00"
+		}
+	];
+
+	responseStr += JSON.stringify(responseObj,null,2) + "\n";
+
+	responseStr += "</pre>\n";
+	
+	responseStr += "<a href=\"/\">Return to home page.</a><br />";
+	responseStr += "</body></html>";
+	res.status(200).send(responseStr);
+});
+
+app.get("/trustee/cred_create", async function (req, res) {
+
+	var responseStr = "";
+	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee Credentials Create</title></head><body><h1>theta-trustee</h1><br />";
+	responseStr += "<a href=\"/trustee/links\">Back to Links page.</a><br />";
+
+	responseStr += "<pre>\n";
+
+	// cf ssh theta-trustee -L localhost:5432:10.11.241.35:59743
+	// CREATE TABLE SYS_XS_SBSS.schema_version (
+	// 	id int NOT NULL,
+	// 	version varchar NOT NULL,
+	// 	installed_rank int NOT NULL DEFAULT 99,
+	// 	success boolean NOT NULL DEFAULT true,
+	// 	CONSTRAINT schema_version_pk PRIMARY KEY (id)
+	// );
+	
+	
+	sbss.createCredentials({
+		// instanceId: options.instanceId,
+		// bindingId: options.bindingId,
+		// serviceId: options.serviceId,
+		// planId: options.planId,
+		// appGuid: options.appGuid,
+		// subaccountId: options.subaccountId
+		instanceId: "instance01",
+		bindingId: "binding01",
+		serviceId: "service",
+		planId: "plan",
+		appGuid: "guid01",
+		subaccountId: "sub01"
+	  }, (err, credentials) => {
+		if (!err) {
+
+			var unmsg = "generated user name:" + credentials.username;
+			var pwmsg = "generated password:" + credentials.password;
+			responseStr += unmsg + "\n";
+			responseStr += pwmsg + "\n";
+
+			console.log(unmsg);
+			console.log(pwmsg);
+	
+			responseStr += "</pre>\n";
+			responseStr += "<a href=\"/\">Return to home page.</a><br />";
+			responseStr += "</body></html>";
+			res.status(200).send(responseStr);
+		
+		} else {
+			responseStr += JSON.stringify(err, null, 2);
+			responseStr += "</pre>\n";
+			responseStr += "<a href=\"/\">Return to home page.</a><br />";
+			responseStr += "</body></html>";
+			res.status(500).send(responseStr);
+		}
+	  });
+	
+});
+
+app.get("/trustee/cred_delete", async function (req, res) {
+
+	var responseStr = "";
+	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee Credentials Delete</title></head><body><h1>theta-trustee</h1><br />";
+	responseStr += "<a href=\"/trustee/links\">Back to Links page.</a><br />";
+
+	responseStr += "<pre>\n";
+
+	
+	sbss.deleteCredentials("instance01", "binding01", (err, result) => {
+		if (!err) {
+			responseStr += "numbe of deleted credentials:" + result.deletedCredentials + "\n";
+		}
+		//cb(err);
+	  });
+	
+	responseStr += "</pre>\n";
+	
+	responseStr += "<a href=\"/\">Return to home page.</a><br />";
+	responseStr += "</body></html>";
+	res.status(200).send(responseStr);
+});
+
+app.get("/trustee/auth", async function (req, res) {
+
+	// cf service-key MRBYOR MRBYORkey
+	// "clientid": "sb-a035d183-4158-432b-869a-0117d3e32b26!b94272|market-data-MRM-MRM_BYOD!b4225",
+	// "clientsecret": "lSe+MIimgoQXzviHhZepKMeABPo=",
+  
+	var responseStr = "";
+	var responseObj = {
+		"access_token": "eyJhbGciOiJSUzI1NiIsImprdSI6Imh0dHBzOi8vdWFhLmNmLmV1MTAuaGFuYS5vbmRlbWFuZC5jb20vdG9rZW5fa2V5cyIsImtpZCI6ImtleS0xIiwidHlwIjoiSldUIn0.eyJqdGkiOiJmNmU1OGM2NTJiZmE0ZWQxOTJlMmM4YTE2Njc0ODUxNyIsInN1YiI6IjMxZjM1NzgwLTM3OTItNDE5My04MzIxLWQwODkxZmU1ZDU4NCIsInNjb3BlIjpbInBhc3N3b3JkLndyaXRlIiwiY2xvdWRfY29udHJvbGxlci5yZWFkIiwiY2xvdWRfY29udHJvbGxlci53cml0ZSIsIm9wZW5pZCIsInVhYS51c2VyIl0sImNsaWVudF9pZCI6ImNmIiwiY2lkIjoiY2YiLCJhenAiOiJjZiIsInJldm9jYWJsZSI6dHJ1ZSwiZ3JhbnRfdHlwZSI6InBhc3N3b3JkIiwidXNlcl9pZCI6IjMxZjM1NzgwLTM3OTItNDE5My04MzIxLWQwODkxZmU1ZDU4NCIsIm9yaWdpbiI6InNhcC5pZHMiLCJ1c2VyX25hbWUiOiJhbmRyZXcubHVuZGVAc2FwLmNvbSIsImVtYWlsIjoiYW5kcmV3Lmx1bmRlQHNhcC5jb20iLCJhdXRoX3RpbWUiOjE2MjkzMDc1NTIsInJldl9zaWciOiI1YzA5MDcxOCIsImlhdCI6MTYyOTMxMTg4OSwiZXhwIjoxNjI5MzEyNDg5LCJpc3MiOiJodHRwczovL3VhYS5jZi5ldTEwLmhhbmEub25kZW1hbmQuY29tL29hdXRoL3Rva2VuIiwiemlkIjoidWFhIiwiYXVkIjpbIm9wZW5pZCIsInBhc3N3b3JkIiwiY2xvdWRfY29udHJvbGxlciIsImNmIiwidWFhIl19.gHLsV6odciiUDNtjW--9eMfbedevjwoS4eiIiU_2cxzL4IdjK1BnY11ApqmlfB2wUvbfROkN8tYJmQqnRPYNvqwrB52Wc4Ac6e1Mvm05I2Q1p_TPNo80dNmN6GgQkgNGx6GCiIEaUVTDWRLLoxl8aYpWPDBA7PlP4PAfuUjZMK4x5BrqEashPVxiTH0uPnnk2MQyztAaZXiXizVAFuVrzHL-5Pxymqb2FcNHuNiGAVggVgousEMLzsofQ0V1ynnnXBj_D4CVyuUX9GPpTuNSSsIybIHtMr-9h_hCpihhUpQcsV2zpKadMOdMta8pnxptRTZeEimWTTfmUYCEs4YkNFSAxfQNUcLbWlZw5oPXAnNsD_on12BZc3wtmQctz-1RIBS-SpTVASUWAEItNymYBQU8UZXUiFi9vZF36-EPIr8vV4naKhl-W5GeO7K4uffYk4wUsSMl1M6nJNuiQ2DebRzjqtyFjQWTIB7Ofju39nO94emV9LQfneh9uHa4xPuktE_FWC3ZMPcCZ_beSbCYcAUXGNuyOkIdI5aZeEXTORFQX6tuAN_pxd0JQJFNMwxAWLbw0j574PdEtdIw3Diu070aGn-Oyhf7dGG0aVBnOxYKek40J8hiWlp3UV25i-Ln0FY57MNXA179mTCMWXTEtulHWvk48HhAkFxvabdNMDs",		"token_type": "bearer",
+		"expires_in": 43199
+	};
+
+	res.setHeader('Content-Type', 'application/json;charset=UTF-8');
+	responseStr = JSON.stringify(responseObj);
+	console.log(responseStr);
+
+	res.status(200).send(responseStr);
+
+});
+
+app.post("/trustee/auth", async function (req, res) {
+
+	var responseStr = "Not application/x-www-form-urlencoded";
+
+	var responseObj = {
+		"access_token": "eyJhbGciOiJSUzI1NiIsImprdSI6Imh0dHBzOi8vdWFhLmNmLmV1MTAuaGFuYS5vbmRlbWFuZC5jb20vdG9rZW5fa2V5cyIsImtpZCI6ImtleS0xIiwidHlwIjoiSldUIn0.eyJqdGkiOiJmNmU1OGM2NTJiZmE0ZWQxOTJlMmM4YTE2Njc0ODUxNyIsInN1YiI6IjMxZjM1NzgwLTM3OTItNDE5My04MzIxLWQwODkxZmU1ZDU4NCIsInNjb3BlIjpbInBhc3N3b3JkLndyaXRlIiwiY2xvdWRfY29udHJvbGxlci5yZWFkIiwiY2xvdWRfY29udHJvbGxlci53cml0ZSIsIm9wZW5pZCIsInVhYS51c2VyIl0sImNsaWVudF9pZCI6ImNmIiwiY2lkIjoiY2YiLCJhenAiOiJjZiIsInJldm9jYWJsZSI6dHJ1ZSwiZ3JhbnRfdHlwZSI6InBhc3N3b3JkIiwidXNlcl9pZCI6IjMxZjM1NzgwLTM3OTItNDE5My04MzIxLWQwODkxZmU1ZDU4NCIsIm9yaWdpbiI6InNhcC5pZHMiLCJ1c2VyX25hbWUiOiJhbmRyZXcubHVuZGVAc2FwLmNvbSIsImVtYWlsIjoiYW5kcmV3Lmx1bmRlQHNhcC5jb20iLCJhdXRoX3RpbWUiOjE2MjkzMDc1NTIsInJldl9zaWciOiI1YzA5MDcxOCIsImlhdCI6MTYyOTMxMTg4OSwiZXhwIjoxNjI5MzEyNDg5LCJpc3MiOiJodHRwczovL3VhYS5jZi5ldTEwLmhhbmEub25kZW1hbmQuY29tL29hdXRoL3Rva2VuIiwiemlkIjoidWFhIiwiYXVkIjpbIm9wZW5pZCIsInBhc3N3b3JkIiwiY2xvdWRfY29udHJvbGxlciIsImNmIiwidWFhIl19.gHLsV6odciiUDNtjW--9eMfbedevjwoS4eiIiU_2cxzL4IdjK1BnY11ApqmlfB2wUvbfROkN8tYJmQqnRPYNvqwrB52Wc4Ac6e1Mvm05I2Q1p_TPNo80dNmN6GgQkgNGx6GCiIEaUVTDWRLLoxl8aYpWPDBA7PlP4PAfuUjZMK4x5BrqEashPVxiTH0uPnnk2MQyztAaZXiXizVAFuVrzHL-5Pxymqb2FcNHuNiGAVggVgousEMLzsofQ0V1ynnnXBj_D4CVyuUX9GPpTuNSSsIybIHtMr-9h_hCpihhUpQcsV2zpKadMOdMta8pnxptRTZeEimWTTfmUYCEs4YkNFSAxfQNUcLbWlZw5oPXAnNsD_on12BZc3wtmQctz-1RIBS-SpTVASUWAEItNymYBQU8UZXUiFi9vZF36-EPIr8vV4naKhl-W5GeO7K4uffYk4wUsSMl1M6nJNuiQ2DebRzjqtyFjQWTIB7Ofju39nO94emV9LQfneh9uHa4xPuktE_FWC3ZMPcCZ_beSbCYcAUXGNuyOkIdI5aZeEXTORFQX6tuAN_pxd0JQJFNMwxAWLbw0j574PdEtdIw3Diu070aGn-Oyhf7dGG0aVBnOxYKek40J8hiWlp3UV25i-Ln0FY57MNXA179mTCMWXTEtulHWvk48HhAkFxvabdNMDs",		"token_type": "bearer",
+		"token_type": "bearer",
+		"expires_in": 43199,
+		"scope": "market-data-MRM-MRM_BYOD!b4225.PROVISIONING uaa.resource market-data-MRM-MRM_BYOD!b4225.SCOPE1 market-data-MRM-MRM_BYOD!b4225.JOBSCHEDULER market-data-MRM-MRM_BYOD!b4225.MSCOPE market-data-MRM-MRM_BYOD!b4225.marketdata",
+		"jti": "7ab3af79283d4cb3af1468de8bce2766"
+	};
+
+	if (req.headers["content-type"] == "application/x-www-form-urlencoded") {
+		
+		responseStr = JSON.stringify(responseObj);
+		res.setHeader('Content-Type', 'application/json;charset=UTF-8');
+		console.log(responseStr);
+		
+	}
+	res.status(200).send(responseStr);
+});
+
+app.post("/trustee/downloadMarketData", async function (req, res) {
+
+	var responseStr = "";
+
+	// [
+	// 	{
+	// 	  "providerCode": "ECB",
+	// 	  "marketDataSource": "ECB",
+	// 	  "marketDataCategory": "01",
+	// 	  "marketDataKey": "EUR~USD",
+	// 	  "marketDataProperty": "C",
+	// 	  "fromDate": "0000-00-00",
+	// 	  "fromTime": "00:00:00",
+	// 	  "toDate": "0000-00-00",
+	// 	  "toTime": "00:00:00"
+	// 	}
+	// ]
+
+	// [
+	// 	{
+	// 		"providerCode": "SAPECB",
+	// 		"marketDataCategory": "01",
+	// 		"marketDataSource": "ECB",
+	// 		"marketDataKey": "EUR~USD",
+	// 		"marketDataProperty": "C",
+	// 		"validFromDate": "2021-01-27",
+	// 		"validFromTime": "15:00:00",
+	// 		"marketDataValue": 1.2114,
+	// 		"currency": null,
+	// 		"fromFactor": 1.0,
+	// 		"toFactor": 1.0,
+	// 		"priceNotation": null,
+	// 		"termInDays": "",
+	// 		"messageType": "",
+	// 		"messageText": ""
+	// 	}
+	// ]
+	
+
+	if (req.headers["content-type"] == "application/json") {
+
+		//var requestObj = JSON.parse(req.body);
+		//console.log(JSON.stringify(requestObj, null, 2));
+		console.log(JSON.stringify(req.query,null,2));
+		console.log(JSON.stringify(req.body,null,2));
+
+		var responseObj = [];
+
+		var rateres = {
+			providerCode: "BINANCE",
+			marketDataCategory: "00",
+			marketDataSource: "BINANCE",
+			marketDataKey: "ABC~XYZ",
+			marketDataProperty: "C",
+			validFromDate: "2021-01-01",
+			validFromTime: "00:00:00",
+			marketDataValue: 0.9999,
+			currency: null,
+			fromFactor: 1.0,
+			toFactor: 1.0,
+			priceNotation: null,
+			termInDays: "",
+			messageType: "",
+			messageText: ""
+		};
+
+		req.body.forEach(function (ratereq) {
+			console.log(JSON.stringify(ratereq, null, 2));
+			if ('marketDataCategory' in ratereq) {
+				console.log("marketDataCategory: " + ratereq.marketDataCategory);
+				rateres.marketDataCategory = ratereq.marketDataCategory;
+			} else {
+				console.error("marketDataCategory field is required.");
+			}
+
+			if ('marketDataKey' in ratereq) {
+				console.log("marketDataKey: " + ratereq.marketDataKey );
+				rateres.marketDataKey = ratereq.marketDataKey;
+			} else {
+				console.error("marketDataKey field is required.");
+			}
+
+			responseObj.push(rateres);
+
+		});
+		
+		res.setHeader('Content-Type', 'application/json');
+		responseStr = JSON.stringify(responseObj);
+
+	} else if (req.headers["content-type"] == "text/plain; charset=utf-8") {
+
+		console.log("content-type:" + req.headers["content-type"]);
+		console.log("query:" + JSON.stringify(req.query,null,2));
+		
+		textBody(req, res, function (err, body) {
+			// err probably means invalid HTTP protocol or some shiz.
+			if (err) {
+				res.statusCode = 500
+				return res.end("NO U")
+			}
+	 
+			// console.log("req body:\n" + body);
+
+			// res.end(body)
+
+// <meta name="SAP_Internet_Market_Data_Request_Format_Version" content="text/html 1.0">
+// <meta name="TableRow1" content="RINID1    Instrument Name">
+// <meta name="TableRow1_Length" content="20">
+// <meta name="TableRow2" content="RINID2    Data Source">
+// <meta name="TableRow2_Length" content="15">
+// <meta name="TableRow3" content="SPRPTY    Instrument Property">
+// <meta name="TableRow3_Length" content="15">
+// <meta name="TableRow4" content="DFROMDATE Historical Data Start Date">
+// <meta name="TableRow4_Length" content="8">
+// <meta name="TableRow5" content="DFROMTIME Historical Data Start Time">
+// <meta name="TableRow5_Length" content="6">
+// <meta name="TableRow6" content="DTODATE Historical Data End Date">
+// <meta name="TableRow6_Length" content="8">
+// <meta name="TableRow7" content="DTOTIME Historical Data End Time">
+// <meta name="TableRow7_Length" content="6">
+// <meta name="TableRow8" content="UNAME     SAP User Requesting">
+// <meta name="TableRow8_Length" content="12"> 
+					  
+			// var lines = body.split("\n");
+
+			// var idx = 0;
+			// for (let i = 0; i < lines.length; i++) {
+			// 	if (lines[i][0] !== "<") {
+			// 		console.log(idx + ":" + lines[i]);
+			// 		idx++;
+			// 	}
+			// }
+
+			
+// BTC~USD:01          BINANCE        C              0000000000000000000000000000I830671
+
+// <meta name="SAP_Internet_Market_Data_Answer_Format_Version" content="text/plain 1.0">
+// <meta name="TableRow1" content="RINID1    Instrument Name">
+// <meta name="TableRow1_Length" content="20">
+// <meta name="TableRow2" content="RINID2    Data Source">
+// <meta name="TableRow2_Length" content="15">
+// <meta name="TableRow3" content="SPRPTY    Instrument Property">
+// <meta name="TableRow3_Length" content="15">
+// <meta name="TableRow4" content="SSTATS Request Status: Blanks, if ok ">
+// <meta name="TableRow4_Length" content="2">
+// <meta name="TableRow5" content="ERROR Error Message relating to STATUS ">
+// <meta name="TableRow5_Length" content="80">
+// <meta name="TableRow6" content="RSUPID Data source">
+// <meta name="TableRow6_Length" content="10">
+// <meta name="TableRow7" content="RCONID Contributor Identification">
+// <meta name="TableRow7_Length" content="10">
+// <meta name="TableRow8" content="RCONCN Contributor Country Identification">
+// <meta name="TableRow8_Length" content="5">
+// <meta name="TableRow9" content="DATE Date in YYYYMMDD Format">
+// <meta name="TableRow9_Length" content="8">
+// <meta name="TableRow10" content="TIME Time in HHMMSS Format">
+// <meta name="TableRow10_Length" content="6">
+// <meta name="TableRow11" content="VALUE Value with decimal point optionally">
+// <meta name="TableRow11_Length" content="20">
+// <meta name="TableRow12" content="CURRENCY Currency Information for security prices">
+// <meta name="TableRow12_Length" content="5">
+// <meta name="TableRow13" content="MKIND Market Indicator for security prices">
+// <meta name="TableRow13_Length" content="5">
+// <meta name="TableRow14" content="CFFACT Currency: From factor">
+// <meta name="TableRow14_Length" content="7">
+// <meta name="TableRow15" content="CTFACT Currency: To factor">
+// <meta name="TableRow15_Length" content="7">
+// <meta name="TableRow16" content="UNAME Currency: User Name">
+// <meta name="TableRow16_Length" content="12">
+// <meta name="TableRow17" content="RZUSATZ Volatilities: Number of Days">
+// <meta name="TableRow17_Length" content="10">
+// <meta name="TableRow18" content="NEWLINE Line Feed Character/Newline">
+// <meta name="TableRow18_Length" content="1">
+
+			var instrumentName = "EUR~USD:01";
+			//var dataSource = "BINANCE";
+			var dataSource = "ECB";
+			var instrumentProperty = "C";
+			var requestStatus = "";
+			var statusMessage = "";
+			var dataSource2 = "";
+			var contribId = "";
+			var contribCo = "";
+			var dateYYYYMMDD = "20210101";
+			var timeHHMMSS = "000000";
+			var valueDec = "1.234";
+			var currencyInfo = "";
+			var marketIndic = "";
+			var fromFact = "";
+			var toFact = "";
+			var currencyUser = "";
+			var volatilites = "";
+
+			var historicalStartDate = "20210101";
+			var historicalStartTime = "000000";
+			var historicalEndDate = "20210101";
+			var historicalEndTime = "000000";
+			var sapUserRequesting = "I830671";
+
+			var output = "";
+
+			responseStr += "res body:\n";
+
+			var lines = body.split("\n");
+
+			var line = "";
+
+			var idx = 0;
+			var offset = 0;
+			var width = 0;
+			for (let i = 0; i < lines.length; i++) {
+				if (lines[i][0] !== "<") {
+					line = lines[i];
+					console.log(idx + ":" + line);
+
+					offset = 0;
+					width = 0;
+
+					offset += width; width = 20;
+					instrumentName = line.substr(offset, width).trim();
+					// console.log(idx + "~" + instrumentName + "~");
+
+					offset += width; width = 15;
+					dataSource = line.substr(offset, width).trim();
+					// console.log(idx + "~" + dataSource + "~");
+
+					offset += width; width = 15;
+					instrumentProperty = line.substr(offset, width).trim();
+					// console.log(idx + "~" + instrumentProperty + "~");
+
+					offset += width; width = 8; //Historical Data Start Date
+					historicalStartDate = line.substr(offset, width).trim();
+					// console.log(idx + "~" + historicalStartDate + "~");
+
+					offset += width; width = 6; //Historical Data Start Time
+					historicalStartTime = line.substr(offset, width).trim();
+					// console.log(idx + "~" + historicalStartTime + "~");
+
+					offset += width; width = 8; //Historical Data End Date
+					historicalEndDate = line.substr(offset, width).trim();
+					// console.log(idx + "~" + historicalEndDate + "~");
+
+					offset += width; width = 6; //Historical Data End Time
+					historicalEndTime = line.substr(offset, width).trim();
+					// console.log(idx + "~" + historicalEndTime + "~");
+
+					offset += width; width = 12; //SAP User Requesting
+					sapUserRequesting = line.substr(offset, width).trim();
+					// console.log(idx + "~" + sapUserRequesting + "~");
+
+					// Set these from the BINANCE eventually
+					valueDec = "1.999";
+					dateYYYYMMDD = "20210101";
+					timeHHMMSS = "000000";
+
+					output = sprintf('%-20s%-15s%-15s%-2s%-80s%-10s%-10s%-5s%-8s%-6s%-20s%-5s%-5s%-7s%-7s%-12s%-10s', instrumentName, dataSource, instrumentProperty, requestStatus, statusMessage, dataSource2, contribId, contribCo, dateYYYYMMDD, timeHHMMSS, valueDec, currencyInfo, marketIndic, fromFact, toFact, currencyUser, volatilites);
+					// console.log(output);
+					console.log(sprintf('%s %s %s %s %s', instrumentName, dataSource, dateYYYYMMDD, timeHHMMSS, valueDec));
+
+					responseStr += output + "\n";
+				
+					idx++;
+				}
+			}
+
+			
+//EUR~USD:01          BINANCE        C              2018031500000020180413000000
+			
+			res.setHeader('Content-Type', 'text/plain');
+			res.status(200).send(responseStr);
+		});
+
+//		res.setHeader('Content-Type', 'text/plain');
+
+		// responseStr += '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 //EN">' + "\n";
+		// responseStr += '<html>' + "\n";
+		// responseStr += '<head>' + "\n";
+		// responseStr += '<title>SAP Market Data Datafeed Interface Version 1.0</title>' + "\n";
+		// responseStr += '<meta name="SAP_Internet_Market_Data_Request_Format_Version" content="text/html 1.0">' + "\n";
+		// responseStr += '</head>' + "\n";
+		// responseStr += '<body>' + "\n";
+
+		// responseStr += 'EUR~USD:01          BINANCE        C              2018031500000020180413000000' + "\n";
+		
+		// responseStr += 'EUR~USD:01          BINANCE        C                                                                                                         20210315000000+0.00203            USD                                           ' + "\n";
+		// responseStr += 'USDAMDREF=BOI       DDS            MID                                                                                                                       20210816223000+492.90000          USD                                           
+		// USDAMDREF=BOI       DDS            INVMID                                                                                                                    20210816223000+0.00203            AMD                                           
+		// EURAMDREF=BOI       DDS            MID                                                                                                                       20210816223000+580.24000          USD                                           
+		// EURAMDREF=BOI       DDS            
+
+		// responseStr += '</body>' + "\n";
+		// responseStr += '</html>' + "\n";
+
+//		console.log(responseStr);
+
+	} else {
+		responseStr = "unhandled mime/type: " + req.headers["content-type"];
+		console.log(responseStr);
+		res.setHeader('Content-Type', 'text/plain');
+		res.status(200).send(responseStr);
+	}
+	
+});
 
 app.get("/trustee/copy-me", async function (req, res) {
 
@@ -1260,6 +1753,7 @@ app.get("/trustee/copy-me", async function (req, res) {
 	responseStr += "</body></html>";
 	res.status(200).send(responseStr);
 });
+
 
 server.on("request", app);
 

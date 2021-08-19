@@ -5,6 +5,7 @@ go 1.16
 require (
 	//	github.com/andrewlunde/thetaoffchaingo v0.0.0-20210721173506-b9d779faa08d
 	github.com/herumi/bls-eth-go-binary v0.0.0-20210520070601-31246bfa8ac4 // indirect
+	github.com/mattn/go-sqlite3 v1.14.8 // indirect
 	github.com/spf13/viper v1.8.1
 	github.com/thetatoken/theta/query v0.2.0
 	github.com/thetatoken/theta/tx v0.2.0

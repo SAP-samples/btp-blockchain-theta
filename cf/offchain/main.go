@@ -1,12 +1,15 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/spf13/viper"
 
 	"github.com/thetatoken/theta/query"
@@ -201,6 +204,61 @@ func acctHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func date_test() {
+	// date +%s
+	// date -u +%Y-%m-%d
+	vals := []string{"2021-08-04", "2021-08-05", "2021-08-06"}
+
+	for _, val := range vals {
+
+		t, err := time.Parse("2006-01-02", val)
+
+		if err != nil {
+
+			log.Fatal(err)
+		}
+
+		//[4] is the market close price
+		// [
+		//   [
+		//     [0]1499040000000,      // Open time
+		//     [1]"0.01634790",       // Open
+		//     [2]"0.80000000",       // High
+		//     [3]"0.01575800",       // Low
+		//     [4]"0.01577100",       // Close
+		//     [5]"148976.11427815",  // Volume
+		//     [6]1499644799999,      // Close time
+		//     [7]"2434.19055334",    // Quote asset volume
+		//     [8]308,                // Number of trades
+		//     [9]"1756.87402397",    // Taker buy base asset volume
+		//     [0]"28.46694368",      // Taker buy quote asset volume
+		//     [0]"17928899.62484339" // Ignore.
+		//   ]
+		// ]
+
+		fmt.Println("curl -s --location --request GET 'https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&startTime=" + strconv.FormatInt(t.Unix()*1000, 10) + "&limit=1' --header 'Content-Type: application/json' | jq .[][4]")
+	}
+
+}
+
+func sqlite_init() {
+	database, _ := sql.Open("sqlite3", "./cache.db")
+	statement, _ := database.Prepare("CREATE TABLE IF NOT EXISTS people (id INTEGER PRIMARY KEY, firstname TEXT, lastname TEXT)")
+	statement.Exec()
+	statement, _ = database.Prepare("INSERT INTO people (firstname, lastname) VALUES (?, ?)")
+	statement.Exec("Rob", "Gronkowski")
+	statement.Exec("Andrew", "Lunde")
+	statement.Exec("John", "Galt")
+	rows, _ := database.Query("SELECT id, firstname, lastname FROM people")
+	var id int
+	var firstname string
+	var lastname string
+	for rows.Next() {
+		rows.Scan(&id, &firstname, &lastname)
+		fmt.Println(strconv.Itoa(id) + ": " + firstname + " " + lastname)
+	}
+}
+
 func reserveHandler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/offchain/reserve" {
 		http.Error(w, "404 not found.", http.StatusNotFound)
@@ -374,6 +432,8 @@ func main() {
 	//
 	// output := query.Account(address)
 	// fmt.Println(output)
+	date_test()
+	sqlite_init()
 
 	fileServer := http.FileServer(http.Dir("./static"))
 	http.Handle("/", fileServer)
