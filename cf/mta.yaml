@@ -55,6 +55,7 @@ modules:
    requires:
     - name: theta-uaa
     - name: theta-cred
+    - name: theta-binance
    #  - name: theta-pgsql
    #  - name: theta-hdb
    #  - name: theta-mrbyor
@@ -202,6 +203,20 @@ resources:
       # Use trial plan for Trial Accounts
       # service-plan: trial
       service-name: THETA_CRED
+
+ - name: theta-binance
+   type: org.cloudfoundry.user-provided-service
+   parameters:
+      service-name: THETA_BINA
+      # service-tags: ["market-rate-provider-api", "binance"]
+      config:
+         type: market-rate-provider-api
+         url: https://api.binance.com
+         username: anonymous
+         password: unknown
+
+# Error when using Postgres 
+#   "jse_shortmsg": "Could not determine SBSS version: Error executing select version from SYS_XS_SBSS.schema_version where success=true order by installed_rank desc limit 1",
 
 #  - name: theta-pgsql
 #    type: org.cloudfoundry.managed-service

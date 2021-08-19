@@ -59,6 +59,10 @@ const Carol = "0xcd56123D0c5D6C1Ba4D39367b88cba61D93F5405";
 const mnaddress = "0x2E833968E5bB786Ae419c4d13189fB081Cc43bab";
 // 0xabcdefxxxxxxx
 
+// curl -X POST -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"theta.GetStatus","params":[],"id":1}' https://partner-prova-dev-theta-privatenet.cfapps.us21.hana.ondemand.com/rpc | jq .
+var privateNetURL = "https://theta-dev-theta-privatenet.cfapps.eu10.hana.ondemand.com";
+var offchainURL = "https://theta-dev-theta-offchain.cfapps.eu10.hana.ondemand.com";
+var binanceURL = "https://api.binance.com";
 var binding = null;
 
 try {
@@ -75,6 +79,20 @@ try {
 	console.log("cf de theta-trustee");
 }
 
+// Run this to inject the ENV like when app is deployed to CF
+// cf copyenv theta-trustee | source /dev/stdin
+// export destinations='[{"forwardAuthToken":true,"name":"theta_privatenet_be","url":"https://partner-prova-dev-theta-privatenet.cfapps.us21.hana.ondemand.com"}]'
+const destinations = JSON.parse(process.env.destinations);
+destinations.forEach(destination => {
+	if (destination.name == "theta_privatenet_be") {
+		privateNetURL = destination.url;
+	}
+	if (destination.name == "theta_offchain_be") {
+		offchainURL = destination.url;
+	}
+});
+
+
 var privkey = null;
 var privkey2 = null;
 var privkeyx = null;
@@ -89,23 +107,26 @@ var privkeycarol = null;
 // thetacli query status | jq .
 //const provider = new thetajs.providers.HttpProvider('privatenet', 'http://localhost:16888/rpc'); // Works
 
-// curl -X POST -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"theta.GetStatus","params":[],"id":1}' https://partner-prova-dev-theta-privatenet.cfapps.us21.hana.ondemand.com/rpc | jq .
-var privateNetURL = "https://partner-prova-dev-theta-privatenet.cfapps.us21.hana.ondemand.com";
-// Run this to inject the ENV like when app is deployed to CF
-// cf copyenv theta-trustee | source /dev/stdin
-// export destinations='[{"forwardAuthToken":true,"name":"theta_privatenet_be","url":"https://partner-prova-dev-theta-privatenet.cfapps.us21.hana.ondemand.com"}]'
-const destinations = JSON.parse(process.env.destinations);
-destinations.forEach(destination => {
-	if (destination.name == "theta_privatenet_be") {
-		privateNetURL = destination.url;
-	}
-});
-
 // Re-enable this once we figure out the DB situation
 // var options = xsenv.cfServiceCredentials({ tag: 'hana'});
 // var sbss = sbssLib(options);
 
+//options = xsenv.cfServiceCredentials({ tag: 'hana' });
+
+//var services = xsenv.readServices();
+var services = xsenv.filterServices({ label: 'user-provided' });
+services.forEach(service => {
+	console.log(JSON.stringify(service, null, 2));
+	if (service.credentials.type == "market-rate-provider-api") {
+		binanceURL = service.credentials.url;
+		// binanceUser = service.credentials.username;
+		// binancePass = service.credentials.password;
+	}
+});
+
 console.log("privateNetURL: " + privateNetURL);
+console.log("offchainURL: " + offchainURL);
+console.log("binanceURL: " + binanceURL);
 
 // Uncomment the provider for the network you want to work with.
 
@@ -1435,6 +1456,148 @@ app.post("/trustee/auth", async function (req, res) {
 	res.status(200).send(responseStr);
 });
 
+async function binanceTestConnectivity() {
+	const url = binanceURL + "/api/v3/ping";
+    const result = await fetch(url)
+        .then(checkStatus)
+        .then(response => response.text())
+        .then(JSON.parse);
+    return result;
+}
+
+async function binanceCheckServerTime() {
+	const url = binanceURL + "/api/v3/time";
+	const result = await fetch(url)
+		.then(checkStatus)
+		.then(response => response.text())
+        .then(JSON.parse);
+    return result.serverTime;
+}
+
+// https://binance-docs.github.io/apidocs/spot/en/#kline-candlestick-data
+
+// Kline/Candlestick Data
+// Response:
+
+// [
+//   [
+//     1499040000000,      // Open time
+//     "0.01634790",       // Open
+//     "0.80000000",       // High
+//     "0.01575800",       // Low
+//     "0.01577100",       // Close
+//     "148976.11427815",  // Volume
+//     1499644799999,      // Close time
+//     "2434.19055334",    // Quote asset volume
+//     308,                // Number of trades
+//     "1756.87402397",    // Taker buy base asset volume
+//     "28.46694368",      // Taker buy quote asset volume
+//     "17928899.62484339" // Ignore.
+//   ]
+// ]
+// GET /api/v3/klines
+
+// Kline/candlestick bars for a symbol.
+// Klines are uniquely identified by their open time.
+
+// Weight: 1
+
+// Parameters:
+
+// Name	Type	Mandatory	Description
+// symbol	STRING	YES	
+// interval	ENUM	YES	
+// startTime	LONG	NO	
+// endTime	LONG	NO	
+// limit	INT	NO	Default 500; max 1000.
+// If startTime and endTime are not sent, the most recent klines are returned.
+
+// Kline/Candlestick chart intervals:
+
+// m -> minutes; h -> hours; d -> days; w -> weeks; M -> months
+
+// 1m
+// 3m
+// 5m
+// 15m
+// 30m
+// 1h
+// 2h
+// 4h
+// 6h
+// 8h
+// 12h
+// 1d
+// 3d
+// 1w
+// 1M
+
+async function getCachedRates(key1, key2, stime, etime) {
+
+	// Change this to query against our cache persistant store (HANA or Postgres???)
+	
+	if (key1 == "USD") { key1 = "USDT"; }
+	if (key2 == "USD") { key2 = "USDT"; }
+
+	var startTimeParam = "&startTime=1618518625000";
+	var endTimeParam = "&endTime=1618518625000";
+
+	if (stime == "now") {
+		startTimeParam = "";
+	}
+	else {
+		startTimeParam = "&startTime=" + stime;
+	}
+
+	if (etime == "now") {
+		endTimeParam = "";
+	}
+	else {
+		endTimeParam = "&endTime=" + etime;
+	}
+
+	const url = binanceURL + "/api/v3/klines?symbol=" + key1 + "" + key2 + "&interval=1d" + startTimeParam + endTimeParam + "&limit=1";
+	console.log("BinanceURL:" + url);
+	const results = await fetch(url)
+		.then(checkStatus)
+		.then(response => response.text())
+        .then(JSON.parse);
+    return results;
+}
+
+
+async function getBinanceRates(key1, key2, stime, etime) {
+	
+	if (key1 == "USD") { key1 = "USDT"; }
+	if (key2 == "USD") { key2 = "USDT"; }
+
+	var startTimeParam = "&startTime=1618518625000";
+	var endTimeParam = "&endTime=1618518625000";
+
+	if (stime == "now") {
+		startTimeParam = "";
+	}
+	else {
+		startTimeParam = "&startTime=" + stime;
+	}
+
+	if (etime == "now") {
+		endTimeParam = "";
+	}
+	else {
+		endTimeParam = "&endTime=" + etime;
+	}
+
+	const url = binanceURL + "/api/v3/klines?symbol=" + key1 + "" + key2 + "&interval=1d" + startTimeParam + endTimeParam + "&limit=1";
+	console.log("BinanceURL:" + url);
+	const results = await fetch(url)
+		.then(checkStatus)
+		.then(response => response.text())
+        .then(JSON.parse);
+    return results;
+}
+
+
 app.post("/trustee/downloadMarketData", async function (req, res) {
 
 	var responseStr = "";
@@ -1473,6 +1636,44 @@ app.post("/trustee/downloadMarketData", async function (req, res) {
 	// 	}
 	// ]
 	
+	var rates = [];
+	var openTime  = 0;
+	var mktOpen   = 0;
+	var mktHigh   = 0;
+	var mktLow    = 0;
+	var mktClose  = 0;
+	var mktVolume = 0;
+	var closeTime = 0;
+
+	var checkBinance = false;
+	if (checkBinance) {
+		const health = await binanceTestConnectivity();
+		console.log("Binance Availability:" + JSON.stringify(health, null, 2));
+
+		const serverTime = await binanceCheckServerTime();
+		console.log("Binance Server Time:" + serverTime);
+
+		rates = await getBinanceRates("BTC", "USD", "now", "now");
+		openTime  = rates[0][0];
+		mktOpen   = rates[0][1];
+		mktHigh   = rates[0][2];
+		mktLow    = rates[0][3];
+		mktClose  = rates[0][4];
+		mktVolume = rates[0][5];
+		closeTime = rates[0][6];
+		
+		console.log("Latest BTC in USD:" + mktClose);
+	}
+
+//     1499040000000,      // Open time
+//     "0.01634790",       // Open
+//     "0.80000000",       // High
+//     "0.01575800",       // Low
+//     "0.01577100",       // Close
+//     "148976.11427815",  // Volume
+//     1499644799999,      // Close time
+
+	//console.log("Binance Rates:" + JSON.stringify(rates, null, 2));
 
 	if (req.headers["content-type"] == "application/json") {
 
@@ -1527,9 +1728,21 @@ app.post("/trustee/downloadMarketData", async function (req, res) {
 	} else if (req.headers["content-type"] == "text/plain; charset=utf-8") {
 
 		console.log("content-type:" + req.headers["content-type"]);
-		console.log("query:" + JSON.stringify(req.query,null,2));
+		console.log("query:" + JSON.stringify(req.query, null, 2));
 		
-		textBody(req, res, function (err, body) {
+		// Check for an auth_token
+		// Get the particulars
+		// Check to see if they are registered with us
+		// Check to see if they have an active ReserveFund
+		// Check to see of the exipration of the fund it to close
+		// Check to see if the fund has remaining funds
+		// If all is OK then start a new bill
+
+		var bill = 0.00;
+		var cached_fetch_cost = 0.1;	// 0.1 TFuel
+		var non_cached_fetch_cost = 0.3;	// 0.3 TFuel
+		
+		textBody(req, res, async function (err, body) {
 			// err probably means invalid HTTP protocol or some shiz.
 			if (err) {
 				res.statusCode = 500
@@ -1636,7 +1849,7 @@ app.post("/trustee/downloadMarketData", async function (req, res) {
 
 			var output = "";
 
-			responseStr += "res body:\n";
+			// responseStr += "res body:\n";
 
 			var lines = body.split("\n");
 
@@ -1645,10 +1858,33 @@ app.post("/trustee/downloadMarketData", async function (req, res) {
 			var idx = 0;
 			var offset = 0;
 			var width = 0;
+			var skipping = false;
+
+			var fromSecs = 0;
+			var toSecs = 0;
+
 			for (let i = 0; i < lines.length; i++) {
 				if (lines[i][0] !== "<") {
 					line = lines[i];
 					console.log(idx + ":" + line);
+
+					instrumentName = "UNK";
+					dataSource = "UNK";
+					instrumentProperty = "C";
+					requestStatus = "";
+					statusMessage = "";
+					dataSource2 = "";
+					contribId = "";
+					contribCo = "";
+					dateYYYYMMDD = "20210101";
+					timeHHMMSS = "000000";
+					valueDec = "1.000";
+					currencyInfo = "";
+					marketIndic = "";
+					fromFact = "";
+					toFact = "";
+					currencyUser = "";
+					volatilites = "";
 
 					offset = 0;
 					width = 0;
@@ -1685,16 +1921,95 @@ app.post("/trustee/downloadMarketData", async function (req, res) {
 					sapUserRequesting = line.substr(offset, width).trim();
 					// console.log(idx + "~" + sapUserRequesting + "~");
 
-					// Set these from the BINANCE eventually
-					valueDec = "1.999";
-					dateYYYYMMDD = "20210101";
-					timeHHMMSS = "000000";
+					skipping = false;
 
-					output = sprintf('%-20s%-15s%-15s%-2s%-80s%-10s%-10s%-5s%-8s%-6s%-20s%-5s%-5s%-7s%-7s%-12s%-10s', instrumentName, dataSource, instrumentProperty, requestStatus, statusMessage, dataSource2, contribId, contribCo, dateYYYYMMDD, timeHHMMSS, valueDec, currencyInfo, marketIndic, fromFact, toFact, currencyUser, volatilites);
-					// console.log(output);
-					console.log(sprintf('%s %s %s %s %s', instrumentName, dataSource, dateYYYYMMDD, timeHHMMSS, valueDec));
+					if (dataSource == "BINANCE") {
+						const parts = instrumentName.split(":");
+						const keys = parts[0].split("~");
+						
+						var fromWhen = "now";
+						var toWhen = "now";
 
-					responseStr += output + "\n";
+						if (historicalStartDate != "00000000") {
+							var sdparts = historicalStartDate.match(/(\d{4})(\d{2})(\d{2})/);
+							var stparts = historicalStartTime.match(/(\d{2})(\d{2})(\d{2})/);
+							var sDate = new Date(sdparts[1],sdparts[2]-1,sdparts[3],stparts[1],stparts[2],stparts[3]);
+							
+							fromWhen = sDate.getTime();
+						}
+						
+						if (historicalEndDate != "00000000") {
+							var edparts = historicalEndDate.match(/(\d{4})(\d{2})(\d{2})/);
+							var etparts = historicalEndTime.match(/(\d{2})(\d{2})(\d{2})/);
+							var eDate = new Date(edparts[1], edparts[2] - 1, edparts[3], etparts[1], etparts[2], etparts[3]);
+							
+							toWhen = eDate.getTime();
+						}
+
+						var cached = false;
+						rates = await getCachedRates(keys[0], keys[1], fromWhen, toWhen);
+						if (rates.length > 0) {
+							cached = true;
+
+							openTime  = rates[0][0];
+							mktOpen   = rates[0][1];
+							mktHigh   = rates[0][2];
+							mktLow    = rates[0][3];
+							mktClose  = rates[0][4];
+							mktVolume = rates[0][5];
+							closeTime = rates[0][6];
+
+							valueDec = mktClose;
+
+							var rateDate = new Date(closeTime);
+							dateYYYYMMDD = sprintf("%4d%02d%02d", rateDate.getFullYear(), rateDate.getMonth()+1, rateDate.getDate());
+							timeHHMMSS = sprintf("%02d%02d%02d", rateDate.getHours(), rateDate.getMinutes(), rateDate.getSeconds());
+
+						}
+	
+						if (!cached) {
+							// Add a non-cached charge to this bill
+							bill += non_cached_fetch_cost;
+
+							rates = await getBinanceRates(keys[0], keys[1], fromWhen, toWhen);
+							if (rates.length > 0) {
+								openTime  = rates[0][0];
+								mktOpen   = rates[0][1];
+								mktHigh   = rates[0][2];
+								mktLow    = rates[0][3];
+								mktClose  = rates[0][4];
+								mktVolume = rates[0][5];
+								closeTime = rates[0][6];
+
+								valueDec = mktClose;
+
+								var rateDate = new Date(closeTime);
+								dateYYYYMMDD = sprintf("%4d%02d%02d", rateDate.getFullYear(), rateDate.getMonth()+1, rateDate.getDate());
+								timeHHMMSS = sprintf("%02d%02d%02d", rateDate.getHours(), rateDate.getMinutes(), rateDate.getSeconds());
+
+							}
+
+						} else {
+							// Add a cached charge to this bill
+							bill += cached_fetch_cost;
+						}
+		
+					} else if (dataSource == "ECB") {
+						console.log("dataSource " + dataSource + " is unhandled...skipping");
+						skipping = true;
+					} else {
+						console.log("dataSource " + dataSource + " is unhandled...skipping");
+						skipping = true;
+					}
+
+					if (!skipping) {
+
+						output = sprintf('%-20s%-15s%-15s%-2s%-80s%-10s%-10s%-5s%-8s%-6s%-20s%-5s%-5s%-7s%-7s%-12s%-10s', instrumentName, dataSource, instrumentProperty, requestStatus, statusMessage, dataSource2, contribId, contribCo, dateYYYYMMDD, timeHHMMSS, valueDec, currencyInfo, marketIndic, fromFact, toFact, currencyUser, volatilites);
+						// console.log(output);
+						console.log(sprintf('%s %s %s %s %s', instrumentName, dataSource, dateYYYYMMDD, timeHHMMSS, valueDec));
+
+						responseStr += output + "\n";
+					}
 				
 					idx++;
 				}
