@@ -101,7 +101,11 @@ var privkeybob = null;
 var privkeycarol = null;
 
 var payments = [];
-var payment = {};
+//var payment = {};
+var global_payment_seq = 1;
+var global_payment_amt = 0.0;
+
+var rateDates = [];
 
 // Run this to test locally and enable thetacli
 // cf enable-ssh theta-privatenet
@@ -335,8 +339,9 @@ app.get("/trustee/links", function (req, res) {
 
 	responseStr += "<br />";
 
-	responseStr += "<a href=\"/trustee/downloadMarketData\" target=\"_blank\">mimic Market Rates service</a><br />";
-
+	responseStr += "<a href=\"/\">mimic Market Rates service with browser AJAX post from the home page.</a><br />";
+	responseStr += "<a href=\"/trustee/settle\" target=\"_blank\">Settle off-chain payments with on-chain settlement</a><br />";
+	
 	responseStr += "<br />";
 	responseStr += "<a href=\"/\">Return to home page.</a><br />";
 	responseStr += "</body></html>";
@@ -1029,7 +1034,11 @@ app.get("/trustee/reserve-fund", async function (req, res) {
 			const blockHash = txresult.hash;
 			responseStr += "blockHash :" + JSON.stringify(blockHash,null,2) + "\n";
 			const block = await provider.getTransaction(blockHash);
-			responseStr += "block :" + JSON.stringify(block,null,2) + "\n";
+			responseStr += "block :" + JSON.stringify(block, null, 2) + "\n";
+			
+			global_payment_amt = 0.0;
+			global_payment_seq = 0;
+			responseStr += "<a href=\"/trustee/micro-payments\">Check Alice's Account and Bob's TFuel balance.</a><br />";
 		}
 	} catch(e) {
 		responseStr += "error : " + e + "\n";
@@ -1312,25 +1321,17 @@ app.get("/trustee/downloadMarketData", async function (req, res) {
 
 	responseStr += "<pre>\n";
 
-	responseStr += "POST to this URL with MimeType application/json and body.\n";
+	responseStr += "POST to this URL with(auth bearer token) Content-type text/plain; charset=utf-8 and body.\n";
 	
-	var responseObj = [
-		{
-			"providerCode": "BINANCE",
-			"marketDataSource": "BINANCE",
-			"marketDataCategory": "01",
-			"marketDataKey": "EUR~USD",
-			"marketDataProperty": "C",
-			"fromDate": "0000-00-00",
-			"fromTime": "00:00:00",
-			"toDate": "0000-00-00",
-			"toTime": "00:00:00"
-		}
-	];
-
-	responseStr += JSON.stringify(responseObj,null,2) + "\n";
+	responseStr += "BTC~USD:01          BINANCE        C              2021010100000020210102000000\n";
+	responseStr += "BTC~USD:01          BINANCE        C              0000000000000000000000000000\n";
 
 	responseStr += "</pre>\n";
+
+	// Doing this might cause a circular blocking issue
+	// responseStr += "<a href=\"/\">Simulate POST from Offchain Go module.</a><br />";
+
+	// responseStr += "<br />";
 	
 	responseStr += "<a href=\"/\">Return to home page.</a><br />";
 	responseStr += "</body></html>";
@@ -1602,22 +1603,10 @@ async function getBinanceRates(key1, key2, stime, etime) {
 }
 		
 async function getOffchainPayment(from, to, payment_seq, reserve_seq, resource_id, tfuel, password) {
-	
-	const url = offchainURL + "/offchain/payment?from=" + from + "&to=" + to + "&payment_seq=" + payment_seq + "&reserve_seq=" + reserve_seq + "&resource_id=" + resource_id + "&tfuel=" + tfuel + "&password=" + password + "&on_chain=false&format=json";
+	global_payment_amt += parseFloat(tfuel);
+	const url = offchainURL + "/offchain/payment?from=" + from + "&to=" + to + "&payment_seq=" + payment_seq + "&reserve_seq=" + reserve_seq + "&resource_id=" + resource_id + "&tfuel=" + global_payment_amt + "&password=" + password + "&on_chain=false&format=json";
 	console.log("offchain req:" + url);
 	const result = await fetch(url)
-		.then(checkStatus)
-		.then(response => response.text())
-        .then(JSON.parse);
-    return result;
-}
-
-async function getOnchainPayment(from, to, payment_seq, reserve_seq, resource_id, tfuel, password, src_sig) {
-	
-	const url = offchainURL + "/offchain/payment?from=" + from + "&to=" + to + "&payment_seq=" + payment_seq + "&reserve_seq=" + reserve_seq + "&resource_id=" + resource_id + "&tfuel=" + tfuel + "&password=" + password + "&on_chain=true&format=json&src_sig=" + src_sig;
-	console.log("onchain req:" + url);
-	// Need to get the go module to adhere to the Expect header
-	const result = await fetch(url, { headers: {'Expect': 'application/json'} } )
 		.then(checkStatus)
 		.then(response => response.text())
         .then(JSON.parse);
@@ -1751,7 +1740,7 @@ app.post("/trustee/downloadMarketData", async function (req, res) {
 		res.setHeader('Content-Type', 'application/json');
 		responseStr = JSON.stringify(responseObj);
 
-	} else if (req.headers["content-type"] == "text/plain; charset=utf-8") {
+	} else if ((req.headers["content-type"] == "text/plain; charset=utf-8") || (req.headers["content-type"] == "text/plain; charset=UTF-8") || (req.headers["content-type"] == "text/plain") ) {
 
 		console.log("content-type:" + req.headers["content-type"]);
 		console.log("query:" + JSON.stringify(req.query, null, 2));
@@ -1990,9 +1979,26 @@ app.post("/trustee/downloadMarketData", async function (req, res) {
 							var rateDate = new Date(closeTime);
 							dateYYYYMMDD = sprintf("%4d%02d%02d", rateDate.getFullYear(), rateDate.getMonth()+1, rateDate.getDate());
 							timeHHMMSS = sprintf("%02d%02d%02d", rateDate.getHours(), rateDate.getMinutes(), rateDate.getSeconds());
-
 						}
-	
+
+						var rateFound = false;
+						rateDates.forEach(rd => {
+							if (rd == dateYYYYMMDD) {
+								rateFound = true;
+								console.log(dateYYYYMMDD + " cached");
+							}
+						});
+
+						if (rateFound) {
+							bill += cached_fetch_cost;
+							console.log(dateYYYYMMDD + " billing " + cached_fetch_cost);
+						} else {
+							bill += non_cached_fetch_cost;
+							console.log(dateYYYYMMDD + " billing " + non_cached_fetch_cost);
+						}
+
+						rateDates.push(dateYYYYMMDD);
+
 						if (!cached) {
 							// Add a non-cached charge to this bill
 							bill += non_cached_fetch_cost;
@@ -2046,25 +2052,26 @@ app.post("/trustee/downloadMarketData", async function (req, res) {
 			var alice = await provider.getAccount(Alice);
 			console.log("alice :" + JSON.stringify(alice,null,2));
 			
-			var payment_seq = 0;
 			var reserve_seq = 0;
 			if (alice.reserved_funds.length > 0) {
 				alice.reserved_funds.forEach(fund => {
 					reserve_seq = fund.reserve_sequence;
-					fund.resource_ids.forEach(resource_id => {
-						payment_seq = fund.transfer_records.length + 1;
-					});
+					// fund.resource_ids.forEach(resource_id => {
+					// 	payment_seq = fund.transfer_records.length + 1;
+					// });
 				});
 
 				try {
-					payment = await getOffchainPayment(Alice,Bob,payment_seq,reserve_seq,"rid1000001",bill,"qwertyuiop");
-					payments.push(payment);
+					var offpayment = {};
+					offpayment = await getOffchainPayment(Alice,Bob,global_payment_seq,reserve_seq,"rid1000001",bill,"qwertyuiop");
+					payments.push(offpayment);
 				} catch (e) {
 					console.error(e);
 				}
-			
+				global_payment_seq++;
 			} else {
 				console.log("alice has no reserve funds! ");
+				global_payment_seq = 1;
 			}
 						
 			res.setHeader('Content-Type', 'text/plain');
@@ -2103,6 +2110,87 @@ app.post("/trustee/downloadMarketData", async function (req, res) {
 	
 });
 
+async function getOnchainPayment(from, to, payment_seq, reserve_seq, resource_id, tfuel, password, src_sig) {
+	
+	const url = offchainURL + "/offchain/payment?from=" + from + "&to=" + to + "&payment_seq=" + payment_seq + "&reserve_seq=" + reserve_seq + "&resource_id=" + resource_id + "&tfuel=" + tfuel + "&password=" + password + "&on_chain=true&format=json&src_sig=" + src_sig;
+	console.log("onchain req:" + url);
+	// Need to get the go module to adhere to the Expect header
+	const result = await fetch(url)
+		.then(checkStatus)
+		.then(response => response.text())
+        .then(JSON.parse);
+    return result;
+}
+
+app.get("/trustee/settle", async function (req, res) {
+
+	var responseStr = "";
+	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><br />";
+	responseStr += "<a href=\"/trustee/links\">Back to Links page.</a><br />";
+
+	responseStr += "<pre>\n";
+
+	try {
+		var alice = await provider.getAccount(Alice);
+		console.log("alice :" + JSON.stringify(alice,null,2));
+		
+		responseStr += "alice  : " + Alice + "\n";
+		responseStr += JSON.stringify(alice, null, 2) + "\n";
+		var reserves_exist = false;
+		if (alice.reserved_funds.length > 0) {
+			reserves_exist = true;
+		}
+
+		if (reserves_exist) {
+			responseStr += "Reserves Exist! OK to claim your payment on-chain." + "\n";
+		} else {
+			responseStr += "No Reserves Exist! You missed your opportunity!" + "\n";
+		}
+
+	} catch(e) {
+		responseStr += "error : " + e + "\n";
+	}
+
+	payments.forEach(payment => {
+		console.log(JSON.stringify(payment, null, 2));
+		responseStr += JSON.stringify(payment, null, 2) + "\n";
+	});
+
+	if (payments.length > 0) {
+		const onpayment = payments[payments.length - 1];
+
+		if (req.query && req.query.action && (req.query.action == "doit")) {
+			try {
+
+				const onchainresult = await getOnchainPayment(
+					onpayment.source.address,
+					onpayment.target.address,
+					onpayment.payment_sequence,
+					onpayment.reserve_sequence,
+					"rid1000001",
+					global_payment_amt,
+					"qwertyuiop",
+					onpayment.source.signature);
+				//global_payment_amt = 0.0;	
+				responseStr += JSON.stringify(onchainresult, null, 2) + "\n";
+			} catch(e) {
+				responseStr += "error : " + e + "\n";
+			}
+		
+		} else {
+			responseStr += "<a href=\"/trustee/settle?action=doit\">Submit the last(largest) payment on-chain.</a><br />";
+		}
+
+	} else {
+		responseStr += "<a href=\"/\">No off-chain payments found. Go back to the home page and simulate.</a><br />";
+	}
+	responseStr += "</pre>\n";
+	
+	responseStr += "<a href=\"/\">Return to home page.</a><br />";
+	responseStr += "</body></html>";
+	res.status(200).send(responseStr);
+});
+
 app.get("/trustee/copy-me", async function (req, res) {
 
 	var responseStr = "";
@@ -2117,6 +2205,7 @@ app.get("/trustee/copy-me", async function (req, res) {
 	responseStr += "</body></html>";
 	res.status(200).send(responseStr);
 });
+
 
 
 server.on("request", app);

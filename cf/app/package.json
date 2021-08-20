@@ -5,10 +5,11 @@
   "private": true,
   "devDependencies": {},
   "dependencies": {
+    "nodemon": "^2.0.7",
     "@sap/approuter": "^7"
   },
   "scripts": {
-    "start": "node node_modules/@sap/approuter/approuter.js"
+    "start": "nodemon node_modules/@sap/approuter/approuter.js"
   },
   "files": [
     "resources",

@@ -99,6 +99,12 @@ modules:
          name: theta_privatenet_be
          url: ~{url}
          forwardAuthToken: true
+    - name: theta_trustee_api
+      group: destinations
+      properties:
+         name: theta_trustee_be
+         url: ~{url}
+         forwardAuthToken: true
 
 # cf push theta-app -p app -n theta-app -d cfapps.us21.hana.ondemand.com -k 256M -m 256M
  - name: theta-app

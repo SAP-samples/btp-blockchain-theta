@@ -10,57 +10,61 @@
         font-family: Tahoma, Geneva, sans-serif;
     }
     .request_labels {
-        display: none;
+        /* display: none; */
+        display: block;
     }
     #request_content {
-        display: none;
+        /* display: none; */
+        display: block;
     }
     .response_labels {
-        display: none;
+        /* display: none; */
+        display: block;
     }
     #response_content {
-        display: none;
+        /* display: none; */
+        display: block;
     }
 </style>
 
 <!-- Page Load Script -->
 <script>
 
-    (function () {
-        var onWindowLoad = function () {
-            
-            var loadScript = function (src, callback) {
-            
-                var element = document.createElement("script");
-                    element.src = src;
-                    element.async = true;
-                    document.body.appendChild(element);
-                    
-                    if (callback) {
-                    
-                        element.onreadystatechange = function () {
-                            if (this.readyState === "loaded" || this.readyState === "complete") { 
-                                callback();
-                            }
-                        };
-                        element.onload = callback;
-                    }
-            },
-            
-            loadArticleScript = function () {
-                preparePageElements();
-            };
-            loadScript("https://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.js", loadArticleScript);
+(function () {
+    var onWindowLoad = function () {
+        
+        var loadScript = function (src, callback) {
+        
+            var element = document.createElement("script");
+                element.src = src;
+                element.async = true;
+                document.body.appendChild(element);
+                
+                if (callback) {
+                
+                    element.onreadystatechange = function () {
+                        if (this.readyState === "loaded" || this.readyState === "complete") { 
+                            callback();
+                        }
+                    };
+                    element.onload = callback;
+                }
+        },
+        
+        loadArticleScript = function () {
+            preparePageElements();
         };
-    
-        if (window.addEventListener) {
-            window.addEventListener("load", onWindowLoad, false);
-        } else if (window.attachEvent) {
-            window.attachEvent("onload", onWindowLoad);
-        } else {
-            window.onload = onWindowLoad;
-        }
-    }());	
+        loadScript("https://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.js", loadArticleScript);
+    };
+
+    if (window.addEventListener) {
+        window.addEventListener("load", onWindowLoad, false);
+    } else if (window.attachEvent) {
+        window.attachEvent("onload", onWindowLoad);
+    } else {
+        window.onload = onWindowLoad;
+    }
+}());	
 
 </script>
 
@@ -75,14 +79,14 @@ function randomIntFromInterval(min,max)
 var request_output = "";
 var xhr = new XMLHttpRequest();
 
-var local_route = "python";
+var local_route = "trustee";
 
-xhr.open('POST', 'python/post');
-request_output += "POST to python/post \n";
-xhr.setRequestHeader('Content-Type', 'application/json');
-request_output += "Request Header: Content-Type = application/json \n";
-xhr.setRequestHeader('Accept', 'application/json');
-request_output += "Request Header: Accept = application/json \n";
+xhr.open('POST', 'trustee/downloadMarketData');
+request_output += "POST to trustee/downloadMarketData \n";
+xhr.setRequestHeader('Content-Type', 'text/plain; charset=utf-8');
+request_output += "Request Header: Content-Type = text/plain; charset=utf-8 \n";
+xhr.setRequestHeader('Accept', 'text/plain');
+request_output += "Request Header: Accept = text/plain \n";
 
 request_output += "\n";
 request_output += "Request Body: \n";
@@ -104,11 +108,12 @@ xhr.onload = function() {
     }
 };
 
-var request_obj = 
-{
-   "numberTarget": 0,
-   "numberData": "0,0,255,0"
-};
+var randint = 0;
+
+randint = "x";
+var request_str = "";
+request_str += "BTC~USD:01          BINANCE        C              2021010" + randint + "0000002021010" + randint + "000000" + "\n";
+request_str += "BTC~USD:01          BINANCE        C              0000000000000000000000000000" + "\n";
 
 function preparePageElements()
 {
@@ -120,9 +125,58 @@ function preparePageElements()
 
 </head>
 <body id="mainBody">
+
+<script type="text/javascript">
+
+function postMarketRates()
+{
+
+    var randint = 0;
+
+    randint = randomIntFromInterval(1,8);
+    var request_str = "";
+    request_str += "BTC~USD:01          BINANCE        C              2021010" + randint + "0000002021010" + (randint+1) + "000000" + "\n";
+    request_str += "BTC~USD:01          BINANCE        C              0000000000000000000000000000" + "\n";
+
+    // Update the request
+    document.getElementById("request_content").innerHTML = "<pre>\n" + request_output + "\n" + request_str + "</pre>\n";
+
+    xhr = new XMLHttpRequest();
+    xhr.open('POST', 'trustee/downloadMarketData');
+    xhr.setRequestHeader('Content-Type', 'text/plain; charset=utf-8');
+    xhr.setRequestHeader('Accept', 'text/plain');
+
+    xhr.onload = function() {
+        if (xhr.status === 200) {
+            var lines = xhr.responseText.split("\n");
+            var output = "";
+            lines.forEach(line => {
+//BTC~USD:01          BINANCE        C                                                                                                                         2021010423595931988.71000000                                                    
+                
+                output += line.substr(0,50) + line.substr(157,4) + "-" + line.substr(161,2) + "-" + line.substr(163,2) + " " + line.substr(165,2) + ":" + line.substr(167,2) + ":" + line.substr(169,2) + " " +  + line.substr(171,(line.length - 171)) + "\n"; 
+            });
+
+            document.getElementById("response_content").innerHTML = "<pre>\n" + dumpResponseHeaders(xhr) + "Response Body: \n" + output + "</pre>\n";
+        }
+        else {
+            alert("Yipe!  Got status " + xhr.status + " : " + xhr.statusText + " ::\n " + xhr.responseText + " \n:: expected 200.");
+        }
+    };
+
+    xhr.send(request_str);
+
+}
+</script>
+
+
 <strong>cf</strong><br />
 <br />
 <img src="favicon.ico" /><br />
+
+
+<a href="/trustee/links">/trustee/</a> link handled by NodeJS module theta-trustee<br />
+<a href="/offchain/links">/offchain/</a> link handled by GoLang module theta-offchain<br />
+<p>Click this <button id="postMarketRates" type="button" onclick="postMarketRates()">Request Market Rates</button> button to simulate an S/4 Hana Market Rates request.</p>
 
 <p class="request_labels">===Begin Request===</p>
 <div id="request_content">
@@ -138,17 +192,13 @@ No results returned yet.
 
 <script>
     // Display the request
-//    document.getElementById("request_content").innerHTML = "<pre>\n" + request_output + "\n" + JSON.stringify(request_obj, null, 2) + "</pre>\n";
+    document.getElementById("request_content").innerHTML = "<pre>\n" + request_output + "\n" + request_str + "</pre>\n";
     
     // Send the Ajax Request.
-    //xhr.send(JSON.stringify(request_obj));
+    //xhr.send(request_str);
+
 </script>
     
-
-<a href="/trustee/links">/trustee/</a> link handled by NodeJS module theta-trustee<br />
-<a href="/offchain/links">/offchain/</a> link handled by GoLang module theta-offchain<br />
-
-
 </body>
 </html>
 
