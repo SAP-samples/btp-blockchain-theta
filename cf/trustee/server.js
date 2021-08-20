@@ -100,6 +100,9 @@ var privkeyalice = null;
 var privkeybob = null;
 var privkeycarol = null;
 
+var payments = [];
+var payment = {};
+
 // Run this to test locally and enable thetacli
 // cf enable-ssh theta-privatenet
 // cf restart theta-privetenet
@@ -327,8 +330,8 @@ app.get("/trustee/links", function (req, res) {
 
 	responseStr += "<a href=\"/trustee/micro-payments\" target=\"micro-payments\">micro-payments</a> micro-payment Accounts Status<br />";
 	responseStr += "<a href=\"/trustee/reserve-fund\" target=\"micro-payments\">reserve-fund</a> Create Reserve Fund <a href=\"/trustee/reserve-fund?action=doit\" target=\"_blank\">doit</a><br />";
-	responseStr += "<a href=\"/trustee/service-payment?from=Alice&to=Bob&payment_seq=1&reserve_seq=11&resource_id=rid1000001&tfuel=20&on_chain=false&action=doit&dry_run=true\" target=\"micro-payments\">Off-Chain service-payment Alice -> Bob</a><br />";
-	responseStr += "<a href=\"/trustee/service-payment?from=Alice&to=Bob&payment_seq=1&reserve_seq=11&resource_id=rid1000001&tfuel=20&on_chain=true&action=doit&dry_run=true&src_sig=0x0e79a754d08f29afada5ec5c9949e7898fe3cb6cdcafc13e16f0a4c560e22e6947332468d4ce0e8d24e64069dfa00bcf95e25611552ac93c83878d3b84c770341b\" target=\"micro-payments\">On-Chain service-payment Alice -> Bob</a><br />";
+	responseStr += "<a href=\"/trustee/service-payment?from=Alice&to=Bob&payment_seq=1&reserve_seq=11&resource_id=rid1000001&tfuel=20&on_chain=false&format=html&action=doit&dry_run=true\" target=\"micro-payments\">Off-Chain service-payment Alice -> Bob</a><br />";
+	responseStr += "<a href=\"/trustee/service-payment?from=Alice&to=Bob&payment_seq=1&reserve_seq=11&resource_id=rid1000001&tfuel=20&on_chain=true&format=html&action=doit&dry_run=true&src_sig=0x0e79a754d08f29afada5ec5c9949e7898fe3cb6cdcafc13e16f0a4c560e22e6947332468d4ce0e8d24e64069dfa00bcf95e25611552ac93c83878d3b84c770341b\" target=\"micro-payments\">On-Chain service-payment Alice -> Bob</a><br />";
 
 	responseStr += "<br />";
 
@@ -931,12 +934,13 @@ app.get("/trustee/micro-payments", async function (req, res) {
 				responseStr += "<strong>reserve_sequence: " + fund.reserve_sequence + "</strong><br />\n";
 				fund.resource_ids.forEach(resource_id => {
 					payment_seq = fund.transfer_records.length + 1;
-					responseStr += "<strong>resource_id: " + resource_id + "</strong> <a href=\"/trustee/service-payment?from=Alice&to=Bob&payment_seq=" + payment_seq + "&reserve_seq=" + fund.reserve_sequence + "&resource_id=" + resource_id + "&tfuel=20&on_chain=false&action=doit&dry_run=true\">Offchain payment for " + resource_id + "</a><br />\n";
+					responseStr += "<strong>resource_id: " + resource_id + "</strong> <a href=\"/trustee/service-payment?from=Alice&to=Bob&payment_seq=" + payment_seq + "&reserve_seq=" + fund.reserve_sequence + "&resource_id=" + resource_id + "&tfuel=20&on_chain=false&format=html&action=doit&dry_run=true\">Offchain payment for " + resource_id + "</a><br />\n";
 				});
 	
 			});
 			responseStr += "<pre>\n";
 		}
+
 		responseStr += "theta:  " + (alice.coins.thetawei / 1000000000000000000) + "\n";
 		responseStr += "tfuel: " + (alice.coins.tfuelwei / 1000000000000000000) + "\n";
 
@@ -1286,7 +1290,7 @@ app.get("/trustee/service-payment", async function (req, res) {
 
 		responseStr += "</pre>\n";
 		if (on_chain == "false") {
-			responseStr += "<a href=\"/trustee/service-payment?from=" + from + "&to=" + to + "&payment_seq=" + payment_seq + "&reserve_seq=" + reserve_seq + "&resource_id=" + resource_id + "&tfuel=" + req.query.tfuel + "&on_chain=true&action=doit&dry_run=false&src_sig=" + srcsig + "\" target=\"on-chain\">On-Chain service-payment</a><br />";
+			responseStr += "<a href=\"/trustee/service-payment?from=" + from + "&to=" + to + "&payment_seq=" + payment_seq + "&reserve_seq=" + reserve_seq + "&resource_id=" + resource_id + "&tfuel=" + req.query.tfuel + "&on_chain=true&format=html&action=doit&dry_run=false&src_sig=" + srcsig + "\" target=\"on-chain\">On-Chain service-payment</a><br />";
 			responseStr += "<br />\n";
 		}
 	} catch (e) {
@@ -1596,7 +1600,29 @@ async function getBinanceRates(key1, key2, stime, etime) {
         .then(JSON.parse);
     return results;
 }
+		
+async function getOffchainPayment(from, to, payment_seq, reserve_seq, resource_id, tfuel, password) {
+	
+	const url = offchainURL + "/offchain/payment?from=" + from + "&to=" + to + "&payment_seq=" + payment_seq + "&reserve_seq=" + reserve_seq + "&resource_id=" + resource_id + "&tfuel=" + tfuel + "&password=" + password + "&on_chain=false&format=json";
+	console.log("offchain req:" + url);
+	const result = await fetch(url)
+		.then(checkStatus)
+		.then(response => response.text())
+        .then(JSON.parse);
+    return result;
+}
 
+async function getOnchainPayment(from, to, payment_seq, reserve_seq, resource_id, tfuel, password, src_sig) {
+	
+	const url = offchainURL + "/offchain/payment?from=" + from + "&to=" + to + "&payment_seq=" + payment_seq + "&reserve_seq=" + reserve_seq + "&resource_id=" + resource_id + "&tfuel=" + tfuel + "&password=" + password + "&on_chain=true&format=json&src_sig=" + src_sig;
+	console.log("onchain req:" + url);
+	// Need to get the go module to adhere to the Expect header
+	const result = await fetch(url, { headers: {'Expect': 'application/json'} } )
+		.then(checkStatus)
+		.then(response => response.text())
+        .then(JSON.parse);
+    return result;
+}
 
 app.post("/trustee/downloadMarketData", async function (req, res) {
 
@@ -1661,7 +1687,7 @@ app.post("/trustee/downloadMarketData", async function (req, res) {
 		mktClose  = rates[0][4];
 		mktVolume = rates[0][5];
 		closeTime = rates[0][6];
-		
+
 		console.log("Latest BTC in USD:" + mktClose);
 	}
 
@@ -2017,7 +2043,30 @@ app.post("/trustee/downloadMarketData", async function (req, res) {
 
 			
 //EUR~USD:01          BINANCE        C              2018031500000020180413000000
+			var alice = await provider.getAccount(Alice);
+			console.log("alice :" + JSON.stringify(alice,null,2));
 			
+			var payment_seq = 0;
+			var reserve_seq = 0;
+			if (alice.reserved_funds.length > 0) {
+				alice.reserved_funds.forEach(fund => {
+					reserve_seq = fund.reserve_sequence;
+					fund.resource_ids.forEach(resource_id => {
+						payment_seq = fund.transfer_records.length + 1;
+					});
+				});
+
+				try {
+					payment = await getOffchainPayment(Alice,Bob,payment_seq,reserve_seq,"rid1000001",bill,"qwertyuiop");
+					payments.push(payment);
+				} catch (e) {
+					console.error(e);
+				}
+			
+			} else {
+				console.log("alice has no reserve funds! ");
+			}
+						
 			res.setHeader('Content-Type', 'text/plain');
 			res.status(200).send(responseStr);
 		});

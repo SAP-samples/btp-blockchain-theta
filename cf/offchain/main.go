@@ -188,9 +188,9 @@ func acctHandler(w http.ResponseWriter, r *http.Request) {
 						fmt.Fprintf(w, "reserve_sequence: %s<br />\n", reserve_seq)
 						fmt.Fprintf(w, "payment_sequence: %s<br />\n", payment_seq)
 
-						fmt.Fprintf(w, "<a href=\"/offchain/payment?from=%s&to=%s&payment_seq=%s&reserve_seq=%s&resource_id=%s&tfuel=%s&password=%s&on_chain=false\">off-chain payment</a><br />\n", tx.Alice, tx.Bob, payment_seq, reserve_seq, resource_id, tfuel, password)
+						fmt.Fprintf(w, "<a href=\"/offchain/payment?from=%s&to=%s&payment_seq=%s&reserve_seq=%s&resource_id=%s&tfuel=%s&password=%s&on_chain=false&format=html\">off-chain payment</a><br />\n", tx.Alice, tx.Bob, payment_seq, reserve_seq, resource_id, tfuel, password)
 						if accum_tfuel != "" {
-							fmt.Fprintf(w, "<a href=\"/offchain/payment?from=%s&to=%s&payment_seq=%s&reserve_seq=%s&resource_id=%s&tfuel=%s&password=%s&on_chain=false\">off-chain payment +%s</a><br />\n", tx.Alice, tx.Bob, payment_seq, reserve_seq, resource_id, accum_tfuel, password, accum_tfuel)
+							fmt.Fprintf(w, "<a href=\"/offchain/payment?from=%s&to=%s&payment_seq=%s&reserve_seq=%s&resource_id=%s&tfuel=%s&password=%s&on_chain=false&format=html\">off-chain payment +%s</a><br />\n", tx.Alice, tx.Bob, payment_seq, reserve_seq, resource_id, accum_tfuel, password, accum_tfuel)
 						}
 					}
 				} else {
@@ -319,6 +319,11 @@ func paymentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	return_json_only := false
+	// if r.Header.Get("Expect") != "application/json" {
+	// 	return_json_only = true
+	// }
+
 	rquery := r.URL.Query()
 	from := rquery.Get("from")
 	to := rquery.Get("to")
@@ -328,6 +333,11 @@ func paymentHandler(w http.ResponseWriter, r *http.Request) {
 	tfuel := rquery.Get("tfuel")
 	password := rquery.Get("password")
 	on_chain := rquery.Get("on_chain")
+	format := rquery.Get("format")
+
+	if format == "json" {
+		return_json_only = true
+	}
 
 	// endpoint := "https://theta-dev-theta-privatenet.cfapps.eu10.hana.ondemand.com/rpc"
 
@@ -374,12 +384,20 @@ func paymentHandler(w http.ResponseWriter, r *http.Request) {
 	output := tx.DoServicePayment()
 	//output := tx.ReserveFund(reserveFundCmd, make([]string, 0))
 
-	w.Header().Set("Content-Type", "text/html")
+	if return_json_only {
+		w.Header().Set("Content-Type", "application/json")
+	} else {
+		w.Header().Set("Content-Type", "text/html")
+	}
 	w.WriteHeader(200)
 
-	fmt.Fprintf(w, "<pre><br />\n")
-	fmt.Fprintf(w, "output: %s<br />\n", output)
-	fmt.Fprintf(w, "</pre><br />\n")
+	if return_json_only {
+		fmt.Fprintf(w, "%s", output)
+	} else {
+		fmt.Fprintf(w, "<pre><br />\n")
+		fmt.Fprintf(w, "output: %s<br />\n", output)
+		fmt.Fprintf(w, "</pre><br />\n")
+	}
 
 	if on_chain == "false" {
 		var result2 map[string]interface{}
@@ -390,20 +408,26 @@ func paymentHandler(w http.ResponseWriter, r *http.Request) {
 
 		src_src := result2["source"]
 		src_sig := src_src.(map[string]interface{})
-		fmt.Fprintf(w, "<a href=\"/offchain/payment?from=%s&to=%s&payment_seq=%s&reserve_seq=%s&resource_id=%s&tfuel=%s&password=%s&on_chain=true&src_sig=%s&\">on-chain payment src_sig = %s</a><br />\n", from, to, payment_seq, reserve_seq, resource_id, tfuel, password, src_sig["signature"], src_sig["signature"])
+		if !return_json_only {
+			fmt.Fprintf(w, "<a href=\"/offchain/payment?from=%s&to=%s&payment_seq=%s&reserve_seq=%s&resource_id=%s&tfuel=%s&password=%s&on_chain=true&format=html&src_sig=%s&\">on-chain payment src_sig = %s</a><br />\n", from, to, payment_seq, reserve_seq, resource_id, tfuel, password, src_sig["signature"], src_sig["signature"])
+		}
 
 		tfwf, _ := strconv.ParseFloat(tfuel, 64)
 
 		tfwf += 20.000
 		accum_tfuel := fmt.Sprintf("%f", tfwf)
 
-		fmt.Fprintf(w, "<br /> -OR- <br /><br />\n")
+		if !return_json_only {
+			fmt.Fprintf(w, "<br /> -OR- <br /><br />\n")
 
-		fmt.Fprintf(w, "<a href=\"/offchain/payment?from=%s&to=%s&payment_seq=%s&reserve_seq=%s&resource_id=%s&tfuel=%s&password=%s&on_chain=false&\">off-chain payment %s</a><br />\n", from, to, payment_seq, reserve_seq, resource_id, accum_tfuel, password, accum_tfuel)
+			fmt.Fprintf(w, "<a href=\"/offchain/payment?from=%s&to=%s&payment_seq=%s&reserve_seq=%s&resource_id=%s&tfuel=%s&password=%s&on_chain=false&format=html&\">off-chain payment %s</a><br />\n", from, to, payment_seq, reserve_seq, resource_id, accum_tfuel, password, accum_tfuel)
+		}
 		// } else {
 
 	} else {
-		fmt.Fprintf(w, "<a href=\"/offchain/acct\">acct</a><br />\n")
+		if !return_json_only {
+			fmt.Fprintf(w, "<a href=\"/offchain/acct\">acct</a><br />\n")
+		}
 	}
 
 }
