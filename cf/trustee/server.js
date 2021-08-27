@@ -115,8 +115,37 @@ var rateDates = [];
 //const provider = new thetajs.providers.HttpProvider('privatenet', 'http://localhost:16888/rpc'); // Works
 
 // Re-enable this once we figure out the DB situation
-// var options = xsenv.cfServiceCredentials({ tag: 'hana'});
-// var sbss = sbssLib(options);
+var options = xsenv.cfServiceCredentials({ tag: 'sbss'});
+var sbss = sbssLib(options);
+
+// cf enable-ssh theta-trustee ; cf restart theta-trustee
+// cf ssh theta-trustee -L 5432:10.11.241.24:56249 -T
+// pgcli -h localhost -p 5432 -d ll6zX0DqgKt2jveD -u EUbGgli-DJgI4oIw -W piGc_xJ7taBc9ESv
+// CREATE SCHEMA IF NOT EXISTS SYS_XS_SBSS
+// SET SCHEMA 'sys_xs_sbss'
+// 
+// CREATE TABLE schema_version (id INTEGER, version varchar(5), installed_rank INTEGER, success BOOLEAN, CONSTRAINT id_pk PRIMARY KEY(id))
+// INSERT INTO sys_xs_sbss.schema_version (id,version,installed_rank,success) VALUES (1,'1.7',99,true)
+
+// 1.5.11
+// https://nexusrel.wdf.sap.corp:8443/nexus/service/local/repositories/deploy.releases.xmake/content/com/sap/xs/sbss/sbss-postgresql/1.5.4/sbss-postgresql-1.5.4-jar-with-dependencies.jar
+// select version from SYS_XS_SBSS.schema_version where success = true order by installed_rank desc limit 1
+// const sbssVersion = parseFloat(result.rows[0].version);
+// if (sbssVersion < 1.1) {
+
+	// cf d -f sbss
+	// cf ds -f sbss-container
+	// cf ds -f sbss-configuration
+	// cf create-user-provided-service sbss-configuration -p "{\"tag\":\"sbss-config\",\"restricted-dbuser-name\":\"sbssuser\",\"restricted-dbuser-password\":\"pa55woRD\"}"
+	// cf cs postgresql v9.6-dev sbss-container
+	// cf push sbss -p sbss-postgresql-1.5.1-jar-with-dependencies.jar --no-route --no-start
+	// cf push sbss -p ./sbss-postgresql-1.6.15.jar -b java_buildpack --no-route --no-start --health-check-type none
+	// cf bs sbss sbss-container
+	// cf bs sbss THETA_PGSQL
+	// cf bs sbss sbss-configuration
+	// cf start sbss
+	// cf logs sbss --recent
+
 
 //options = xsenv.cfServiceCredentials({ tag: 'hana' });
 
@@ -1345,16 +1374,6 @@ app.get("/trustee/cred_create", async function (req, res) {
 	responseStr += "<a href=\"/trustee/links\">Back to Links page.</a><br />";
 
 	responseStr += "<pre>\n";
-
-	// cf ssh theta-trustee -L localhost:5432:10.11.241.35:59743
-	// CREATE TABLE SYS_XS_SBSS.schema_version (
-	// 	id int NOT NULL,
-	// 	version varchar NOT NULL,
-	// 	installed_rank int NOT NULL DEFAULT 99,
-	// 	success boolean NOT NULL DEFAULT true,
-	// 	CONSTRAINT schema_version_pk PRIMARY KEY (id)
-	// );
-	
 	
 	sbss.createCredentials({
 		// instanceId: options.instanceId,

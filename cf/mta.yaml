@@ -17,6 +17,10 @@ build-parameters:
       - echo "No Custom Build"
       #- npm install
       #- npx -p @sap/cds-dk cds build
+  after-all:
+   - builder: custom
+     commands:
+      - cf update-service THETA_PGSQL -t sbss
 
 modules:
 
@@ -46,6 +50,7 @@ modules:
    parameters:
       memory: 256M
       disk-quota: 512M
+      health-check-type: none
       #host: ${org}-${space}-theta-trustee
       #domain: cfapps.us21.hana.ondemand.com
    provides:
@@ -56,7 +61,7 @@ modules:
     - name: theta-uaa
     - name: theta-cred
     - name: theta-binance
-   #  - name: theta-pgsql
+    - name: theta-pgsql
    #  - name: theta-hdb
    #  - name: theta-mrbyor
     - name: theta_privatenet_api
@@ -72,7 +77,7 @@ modules:
          url: ~{url}
          forwardAuthToken: true
 
-# cf push theta-offchain -p offchain -n theta-dev-theta-offchain -d cfapps.eu10.hana.ondemand.com -k 512M -m 256M --no-start
+# cf push theta-offchain -p offchain -n theta-dev-theta-offchain -d cfapps.eu10.hana.ondemand.com -k 512M -m 256M --no-start -u none
  - name: theta-offchain
    type: go
    path: offchain
@@ -224,17 +229,13 @@ resources:
 # Error when using Postgres 
 #   "jse_shortmsg": "Could not determine SBSS version: Error executing select version from SYS_XS_SBSS.schema_version where success=true order by installed_rank desc limit 1",
 
-#  - name: theta-pgsql
-#    type: org.cloudfoundry.managed-service
-#    parameters:
-#       service: postgresql
-#       service-plan: v9.6-dev
-#       service-name: THETA_PGSQL
-#       tag: sbss1
-#       tags: sbss2
-#       config:
-#          tag: sbss3
-#          tags: sbss4
+ - name: theta-pgsql
+   # type: org.cloudfoundry.managed-service
+   type: postgresql
+   parameters:
+      service: postgresql
+      service-plan: v9.6-dev
+      service-name: THETA_PGSQL
 
 #  - name: theta-hdb
 #    type: com.sap.xs.hana-schema
