@@ -17,10 +17,10 @@ build-parameters:
       - echo "No Custom Build"
       #- npm install
       #- npx -p @sap/cds-dk cds build
-  after-all:
-   - builder: custom
-     commands:
-      - cf update-service THETA_PGSQL -t sbss
+      #  after-all:
+      #   - builder: custom
+      #     commands:
+      #      - cf update-service THETA_PGSQL -t sbss
 
 modules:
 
@@ -40,6 +40,27 @@ modules:
     - name: theta_privatenet_api
       properties:
          url: ${default-url}
+
+ - name: theta-sbss
+   type: custom
+   path: sbss
+   build-parameters:
+      builder: zip
+      build-result: 'target/*.jar'
+   parameters:
+      memory: 1024M
+      health-check-type: none
+      no-start: true
+      no-route: true
+      buildpack: sap_java_buildpack
+      command: 'curl -L -o /home/vcap/app/sbss.jar http://thedrop.sap-partner-eng.com/files/sbss-postgresql-1.5.4-jar-with-dependencies.jar ; /home/vcap/app/META-INF/.sap_java_buildpack/sapjvm/bin/java -jar /home/vcap/app/sbss.jar'
+   provides:
+    - name: theta_ssbs_api
+      properties:
+         url: '${default-url}'
+   requires:
+    - name: theta-pgsql
+    - name: sbss-config
 
 # cf push theta-trustee -p trustee -n theta-dev-theta-trustee -d cfapps.eu10.hana.ondemand.com -k 512M -m 256M --no-start
  - name: theta-trustee
@@ -236,6 +257,18 @@ resources:
       service: postgresql
       service-plan: v9.6-dev
       service-name: THETA_PGSQL
+
+# cf create-user-provided-service sbss-configuration -p "{\"tag\":\"sbss-config\",\"restricted-dbuser-name\":\"sbssuser\",\"restricted-dbuser-password\":\"pa55woRD\"}"
+
+ - name: sbss-config
+   type: org.cloudfoundry.user-provided-service
+   parameters:
+      service-name: THETA_SBSS
+      # service-tags: ["market-rate-provider-api", "binance"]
+      config:
+         tag: sbss-config
+         restricted-dbuser-name: sbssuser
+         restricted-dbuser-password: pa55woRD
 
 #  - name: theta-hdb
 #    type: com.sap.xs.hana-schema

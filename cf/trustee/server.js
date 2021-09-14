@@ -119,8 +119,10 @@ var options = xsenv.cfServiceCredentials({ tag: 'sbss'});
 var sbss = sbssLib(options);
 
 // cf enable-ssh theta-trustee ; cf restart theta-trustee
-// cf ssh theta-trustee -L 5432:10.11.241.24:56249 -T
-// pgcli -h localhost -p 5432 -d ll6zX0DqgKt2jveD -u EUbGgli-DJgI4oIw -W piGc_xJ7taBc9ESv
+// cf jq theta-trustee | jq '.VCAP_SERVICES | .postgresql[0] | .credentials | .hostname'
+// cf jq theta-trustee | jq '.VCAP_SERVICES | .postgresql[0] | .credentials | .port'
+// cf ssh theta-trustee -L 5432:10.11.241.36:58876 -T
+// pgcli -h localhost -p 5432 -d HagE2kTd1BChVoWE -u gBTB1yG1EUNksjwG -W A0I-FX5RI6VueWte
 // CREATE SCHEMA IF NOT EXISTS SYS_XS_SBSS
 // SET SCHEMA 'sys_xs_sbss'
 // 
