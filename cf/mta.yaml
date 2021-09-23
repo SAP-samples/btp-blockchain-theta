@@ -78,11 +78,17 @@ modules:
     - name: theta_trustee_api
       properties:
          url: ${default-url}
+   properties:
+      SAP_JWT_TRUST_ACL:
+       - clientid: "*"
+         identityzone: "sap-provisioning"
    requires:
     - name: theta-uaa
     - name: theta-cred
     - name: theta-binance
     - name: theta-pgsql
+    - name: theta-registry
+    - name: theta-dest
    #  - name: theta-hdb
    #  - name: theta-mrbyor
     - name: theta_privatenet_api
@@ -154,6 +160,8 @@ modules:
       properties:
          url: ${default-url}
          application: ${app-name}
+   properties:
+      TENANT_HOST_PATTERN: '^(.*)-${org}-${space}.${default-domain}'
 # CDS-MTX
    requires:
    # cf bind-service theta-app THETA_UAA
@@ -200,7 +208,8 @@ resources:
       config:
          xsappname: ${xsuaa-app}
          ### tenant-mode
-         tenant-mode: dedicated
+         #tenant-mode: dedicated
+         tenant-mode: shared
          description: Security profile of the theta application
          scopes:
           - name: "$XSAPPNAME.Callback"
@@ -219,6 +228,16 @@ resources:
           - name: User
             description: User
             scope-references:
+             - "$XSAPPNAME.User"
+         role-collections:
+          - name: theta_Administrator
+            description: Theta Administrator
+            role-template-references:
+             - "$XSAPPNAME.Administrator"
+             - "$XSAPPNAME.User"
+          - name: theta_User
+            description: Theta User
+            role-template-references:
              - "$XSAPPNAME.User"
          oauth2-configuration:
             redirect-uris: 
@@ -278,7 +297,7 @@ resources:
 #       #    database_id: 9ab5c11d-394e-459e-d251-bb99aa73a3da
 #       #    schema: THETA
 #       tags:
-#          tag: sbss5
+#          tag: sbss
 
 
 #  - name: theta-mrbyor
@@ -293,5 +312,37 @@ resources:
 #       config:
 #          serviceInstanceName: theta-binance #name of your service instance
 #          retentionPeriodInDays: 90 #number of days after which you want older records to be deleted.
+
+ - name: theta-registry
+   type: org.cloudfoundry.managed-service
+   requires:
+    - name: theta-uaa
+   parameters:
+      service: saas-registry
+      service-plan: application
+      service-name: THETA_REG
+      config:
+         xsappname: ~{theta-uaa/XSAPPNAME}
+         appName: ${org}-${space}-theta
+         displayName: 'Theta'
+         description: 'Case 4 Theta'
+         category: 'Partner Engineering'
+         appUrls:
+            onSubscription: https://${org}-${space}-theta-trustee.${default-domain}/callback/v1.0/tenants/{tenantId}
+            getDependencies: https://${org}-${space}-theta-trustee.${default-domain}/callback/v1.0/dependencies
+         onSubscriptionAsync: false
+         callbackTimeoutMillis: 10000
+         allowContextUpdates: false
+
+ - name: theta-dest
+   type: org.cloudfoundry.managed-service
+   parameters:
+      service: destination
+      service-plan: lite
+      service-name: THETA_DST
+
+#  cf set-env theta-srv cf_api_user '<email>'
+#  cf set-env theta-srv cf_api_password '<password>'
+#  cf restage theta-srv
 
 ### New Resources Here ###

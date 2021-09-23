@@ -6,10 +6,24 @@
   },
   "routes": [
     {
-      "source": "(trustee/)(.*)",
+      "source": "(srv/)(.*)",
+      "destination": "theta_trustee_be",
+      "scope": "$XSAPPNAME.User",
+      "csrfProtection": true,
+      "authenticationType": "xsuaa"
+    },
+    {
+      "source": "(callback/)(.*)",
       "destination": "theta_trustee_be",
       "csrfProtection": true,
       "authenticationType": "none"
+    },
+    {
+      "source": "(trustee/)(.*)",
+      "destination": "theta_trustee_be",
+      "scope": "$XSAPPNAME.User",
+      "csrfProtection": true,
+      "authenticationType": "xsuaa"
     },
     {
       "source": "(offchain/)(.*)",

@@ -38,6 +38,7 @@ const ContractFactory = thetajs.ContractFactory;
 const { ChainIds } = thetajs.networks;
 
 
+
 const AddressAdmin = "<ADMIN_WALLET_ADDRESS>";
 const AddressUser1 = "<USER1_WALLET_ADDRESS>";
 const AddressUser2 = "<USER2_WALLET_ADDRESS>";
@@ -64,12 +65,15 @@ var privateNetURL = "https://theta-dev-theta-privatenet.cfapps.eu10.hana.ondeman
 var offchainURL = "https://theta-dev-theta-offchain.cfapps.eu10.hana.ondemand.com";
 var binanceURL = "https://api.binance.com";
 var binding = null;
+var services = null;
 
 try {
 	xsenv.loadEnv();
-	const services = xsenv.getServices({
+	services = xsenv.getServices({
 		uaa: { tag: 'xsuaa' },
-		credstore: { tag: 'credstore' }
+		credstore: { tag: 'credstore' },
+		registry: { tag: 'SaaS' },
+		dest: { tag: 'destination' }
 	});
 	//binding = JSON.parse(process.env.VCAP_SERVICES).credstore[0].credentials;
 	binding = services.credstore;
@@ -152,8 +156,8 @@ var sbss = sbssLib(options);
 //options = xsenv.cfServiceCredentials({ tag: 'hana' });
 
 //var services = xsenv.readServices();
-var services = xsenv.filterServices({ label: 'user-provided' });
-services.forEach(service => {
+var upservices = xsenv.filterServices({ label: 'user-provided' });
+upservices.forEach(service => {
 	console.log(JSON.stringify(service, null, 2));
 	if (service.credentials.type == "market-rate-provider-api") {
 		binanceURL = service.credentials.url;
@@ -273,6 +277,35 @@ app.use(express.urlencoded({"type": "application/x-www-form-urlencoded"})); // T
 // 	})
 // });
 // now access req.text  
+
+
+
+// const express = require('express');
+// const app = express();
+// const bodyParser = require('body-parser');
+
+const cfenv = require('cfenv');
+const appEnv = cfenv.getAppEnv();
+// const xsenv = require('@sap/xsenv');
+// const services = xsenv.getServices({
+//     uaa: { tag: 'xsuaa' },
+//     registry: { tag: 'SaaS' }
+//                 , dest: { tag: 'destination' }
+//     });
+
+// const xssec = require('@sap/xssec');
+// const passport = require('passport');
+passport.use('JWT', new xssec.JWTStrategy(services.uaa));
+app.use(passport.initialize());
+app.use(passport.authenticate('JWT', {
+    session: false
+}));
+
+// app.use(bodyParser.json());
+
+const lib = require('./library');
+
+
 
 var server = require("http").createServer();
 var port = process.env.PORT || 8080;
@@ -1377,6 +1410,14 @@ app.get("/trustee/cred_create", async function (req, res) {
 
 	responseStr += "<pre>\n";
 	
+	let userInfo = req.authInfo.getEmail();
+	let subdomain = req.authInfo.getSubdomain();
+	let tenantId = req.authInfo.getZoneId();
+	console.log("userInfo: " + JSON.stringify(userInfo,null,2));
+	console.log("subdomain: " + subdomain);
+	console.log("tenantId: " + tenantId);
+
+
 	sbss.createCredentials({
 		// instanceId: options.instanceId,
 		// bindingId: options.bindingId,
@@ -1384,12 +1425,12 @@ app.get("/trustee/cred_create", async function (req, res) {
 		// planId: options.planId,
 		// appGuid: options.appGuid,
 		// subaccountId: options.subaccountId
-		instanceId: "instance01",
+		instanceId: subdomain,
 		bindingId: "binding01",
 		serviceId: "service",
 		planId: "plan",
 		appGuid: "guid01",
-		subaccountId: "sub01"
+		subaccountId: req.authInfo.getSubaccountId()
 	  }, (err, credentials) => {
 		if (!err) {
 
@@ -2210,6 +2251,102 @@ app.get("/trustee/settle", async function (req, res) {
 	responseStr += "<a href=\"/\">Return to home page.</a><br />";
 	responseStr += "</body></html>";
 	res.status(200).send(responseStr);
+});
+
+// subscribe/onboard a subscriber tenant
+app.put('/callback/v1.0/tenants/*', async function (req, res) {
+	var tenantHost = req.body.subscribedSubdomain + '-' + appEnv.app.space_name.toLowerCase().replace(/_/g, '-') + '-' + services.registry.appName.toLowerCase().replace(/_/g, '-');
+	tenantHost = req.body.subscribedSubdomain + '-' + appEnv.app.organization_name.toLowerCase() + '-' + appEnv.app.space_name.toLowerCase();
+	var tenantURL = 'https:\/\/' + tenantHost + /\.(.*)/gm.exec(appEnv.app.application_uris[0])[0];
+	tenantURL = 'https:\/\/' + req.body.subscribedSubdomain + '-' + appEnv.app.organization_name.toLowerCase() + '-' + appEnv.app.space_name.toLowerCase() + '.cfapps.eu10.hana.ondemand.com';
+	console.log('Subscribe: ', req.body.subscribedSubdomain, req.body.subscribedTenantId, tenantHost, tenantURL);
+	lib.createRoute(tenantHost, services.registry.appName).then(
+		function (result) {
+			//  CREATE SCHEMA IF NOT EXISTS "fb6aabb1-c396-4d3a-b4e1-dfd3bf59eac6"
+			
+						res.status(200).send(tenantURL);
+					},
+	function (err) {
+		console.log(err.stack);
+		res.status(500).send(err.message);
+	});
+
+	res.status(200).send(tenantURL);
+
+});
+
+// unsubscribe/offboard a subscriber tenant
+app.delete('/callback/v1.0/tenants/*', async function (req, res) {
+	var tenantHost = req.body.subscribedSubdomain + '-' + appEnv.app.space_name.toLowerCase().replace(/_/g, '-') + '-' + services.registry.appName.toLowerCase().replace(/_/g, '-');
+	tenantHost = req.body.subscribedSubdomain + '-' + appEnv.app.organization_name.toLowerCase() + '-' + appEnv.app.space_name.toLowerCase();
+	console.log('Unsubscribe: ', req.body.subscribedSubdomain, req.body.subscribedTenantId, tenantHost);
+	lib.deleteRoute(tenantHost, services.registry.appName).then(
+	function (result) {
+						res.status(200).send('');
+					},
+	function (err) {
+		console.log(err.stack);
+		res.status(500).send(err.message);
+	});
+	res.status(200).send('');
+});
+
+// get reuse service dependencies
+app.get('/callback/v1.0/dependencies', function (req, res) {
+let tenantId = req.query.tenantId;
+let dependencies = [{
+	'xsappname': services.dest.xsappname
+}];
+console.log('Dependencies: ', tenantId, dependencies);
+res.status(200).json(dependencies);
+});
+
+// app user info
+app.get('/srv/info', function (req, res) {
+if (req.authInfo.checkScope('$XSAPPNAME.User')) {
+	let info = {
+		'userInfo': req.authInfo.userInfo,
+		'subdomain': req.authInfo.subdomain,
+		'tenantId': req.authInfo.identityZone
+	};
+	res.status(200).json(info);
+} else {
+	res.status(403).send('Forbidden');
+}
+});
+
+// app subscriptions
+app.get('/srv/subscriptions', function (req, res) {
+if (req.authInfo.checkScope('$XSAPPNAME.Administrator')) {
+	lib.getSubscriptions(services.registry).then(
+		function (result) {
+			res.status(200).json(result);
+		},
+		function (err) {
+			console.log(err.stack);
+			res.status(500).send(err.message);
+		});
+} else {
+	res.status(403).send('Forbidden');
+}
+});
+
+
+// destination reuse service
+app.get('/srv/destinations', function (req, res) {
+if (req.authInfo.checkScope('$XSAPPNAME.User')) {
+	lib.getDestination(services.dest, req.authInfo.subdomain, req.query.destination).then(
+		function (result) {
+			// result contains the destination information for use in REST calls
+			res.status(200).json(result);
+		},
+		function (err) {
+			console.log(err.stack);
+			res.status(500).send(err.message);
+		});
+} else {
+	res.status(403).send('Forbidden');
+}
 });
 
 app.get("/trustee/copy-me", async function (req, res) {

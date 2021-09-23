@@ -7,10 +7,9 @@ cd cf ; mkdir -p mta_archives ; mbt build -p=cf -t=mta_archives --mtar=theta.mta
 cf deploy mta_archives/theta.mtar -f
 ```
 
-# Post Deploy One Time:
+# Initial Deploy One Time:
 ```
-cf update-service THETA_PGSQL -t sbss
-cf start theta-sbss ; sleep 60 ; cf stop theta-sbss
+source ./inital_deploy
 ```
 
 # Subsequent Build+Deploy Commands:

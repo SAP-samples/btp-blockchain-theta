@@ -31,7 +31,10 @@
     "request": "^2.88.2",
     "sprintf-js": "latest",
     "stringify-object": "^3.3.0",
-    "wallet-address-validator": "^0.2.4"
+    "wallet-address-validator": "^0.2.4",
+    "cfenv": "latest",
+    "axios": "latest",
+    "qs": "latest"
   },
   "engines": {
     "node": "^14.0.0"
@@ -41,7 +44,8 @@
   "main": "server.js",
   "name": "nodejs",
   "scripts": {
-    "start": "nodemon server.js"
+    "start": "nodemon server.js",
+    "debug": "node --inspect server.js"
   },
   "version": "1.0.0",
   "devDependencies": {
