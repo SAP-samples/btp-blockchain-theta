@@ -26,6 +26,24 @@ modules:
 
 ### New Modules Here ###
 
+# cf push theta-chat -p chat -n theta-chat -d cfapps.us21.hana.ondemand.com -k 512M -m 256M
+ - name: theta-chat
+   type: nodejs
+   path: chat
+   build-parameters:
+      ignore: ["node_modules/"]
+   parameters:
+      memory: 256M
+      disk-quota: 512M
+      #host: ${org}-${space}-theta-chat
+      #domain: cfapps.us21.hana.ondemand.com
+   provides:
+    - name: theta_chat_api
+      properties:
+         url: ${default-url}
+   requires:
+    - name: theta-uaa
+
  - name: theta-privatenet
    type: custom
    build-parameters:
@@ -179,6 +197,12 @@ modules:
          url: ~{url}
          forwardAuthToken: true
    ### New Destinations Here ###
+    - name: theta_chat_api
+      group: destinations
+      properties:
+         name: theta_chat_be
+         url: ~{url}
+         forwardAuthToken: true
 
 resources:
 
@@ -346,3 +370,4 @@ resources:
 #  cf restage theta-srv
 
 ### New Resources Here ###
+

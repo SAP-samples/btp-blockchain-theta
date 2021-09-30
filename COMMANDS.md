@@ -326,6 +326,16 @@ echo "remoteRPCEndpoint: https://partner-prova-dev-theta-privatenet.cfapps.us21.
 < thetacli query status
 
 
+# Query against Privatenet 
+echo "remoteRPCEndpoint: https://theta-dev-theta-privatenet.cfapps.eu10.hana.ondemand.com/rpc" > ~/.thetacli/config.yaml
+thetacli query status
+
+# Query our guardian node
+remoteRPCEndpoint: http://192.168.1.84:16889/rpc
+echo "remoteRPCEndpoint: http://192.168.1.84:16888/rpc" > ~/.thetacli/config.yaml
+thetacli query status
+
+
 // If running privatenet on trial and you get this.  Probably the privatenet node is stopped.
 
 $ thetacli query account --address=2E833968E5bB786Ae419c4d13189fB081Cc43bab

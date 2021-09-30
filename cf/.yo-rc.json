@@ -12,19 +12,24 @@
     "uaa_res_name": "theta-uaa",
     "uaa_svc_name": "THETA_UAA",
     "module_names": [
-      "theta-trustee"
+      "theta-trustee",
+      "theta-chat"
     ],
     "module_paths": [
-      "trustee"
+      "trustee",
+      "chat"
     ],
     "module_apis": [
-      "theta_trustee_api"
+      "theta_trustee_api",
+      "theta_chat_api"
     ],
     "module_bes": [
-      "theta_trustee_be"
+      "theta_trustee_be",
+      "theta_chat_be"
     ],
     "module_routes": [
-      "trustee"
+      "trustee",
+      "chat"
     ],
     "multitenant_enabled": false,
     "docker_module_name": "theta-privatenet",

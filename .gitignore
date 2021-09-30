@@ -33,3 +33,5 @@ wallet/
 node_modules/
 package-lock.json
 .env
+cf/cchat/
+cf/chat/

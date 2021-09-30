@@ -9,7 +9,8 @@
     "@sap/cds": "^4",
     "@sap/hana-client": "^2.4.177",
     "express": "^4",
-    "sprintf-js": "^1.1.2"
+    "sprintf-js": "^1.1.2",
+    "websocket": "^1.0.34"
   },
   "devDependencies": {
     "sqlite3": "^4"

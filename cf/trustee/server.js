@@ -18,6 +18,7 @@ var randomLorem = require('random-lorem');
 var sprintf = require('sprintf-js').sprintf;
 
 var fs = require('fs');
+const crypto = require('crypto');
 
 const fetch = require('node-fetch');
 const jose = require('node-jose');
@@ -26,6 +27,7 @@ require('isomorphic-fetch');
 const BigNumber = require('bignumber.js');
 // node_modules/@thetalabs/theta-js/docs
 const thetajs = require('@thetalabs/theta-js');
+const ThetaWalletConnect = require("@thetalabs/theta-wallet-connect");
 const { accessSync } = require("fs");
 const Wallet = thetajs.Wallet;
 const {HttpProvider} = thetajs.providers;
@@ -407,6 +409,12 @@ app.get("/trustee/links", function (req, res) {
 	responseStr += "<a href=\"/trustee/settle\" target=\"_blank\">Settle off-chain payments with on-chain settlement</a><br />";
 	
 	responseStr += "<br />";
+
+	responseStr += "<a href=\"/trustee/request-accounts\" target=\"_blank\">Request Accounts</a><br />";
+	responseStr += "<a href=\"/trustee/request-payment\" target=\"_blank\">Request Payment</a><br />";
+
+	responseStr += "<br />";
+
 	responseStr += "<a href=\"/\">Return to home page.</a><br />";
 	responseStr += "</body></html>";
 	res.status(200).send(responseStr);
@@ -2347,6 +2355,97 @@ if (req.authInfo.checkScope('$XSAPPNAME.User')) {
 } else {
 	res.status(403).send('Forbidden');
 }
+});
+
+app.get("/trustee/create-wallet", async function (req, res) {
+
+	var responseStr = "";
+	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><br />";
+	responseStr += "<a href=\"/trustee/links\">Back to Links page.</a><br />";
+
+	responseStr += "<pre>\n";
+
+	// https://docs.thetatoken.org/docs/theta-js-sdk-signers#create-a-random-wallet
+	try {
+		// const wallet = thetajs.Wallet.createRandom();
+		// head -c 32 /dev/urandom|xxd -ps -c 32
+		// const privateKey = '0xcd44a249339e35bed97d74f4a0310d624071583639f2cb72848acbee43bdfbc7';
+		const privateKey = "0x" + crypto.randomBytes(32).toString('hex');
+		//console.log(privateKey);
+		responseStr += "privateKey: " + privateKey + "\n";
+		const wallet = new Wallet(privateKey);
+		var connectedWallet = wallet.connect(provider);
+		responseStr += JSON.stringify(wallet,null,2) + "\n";
+		responseStr += JSON.stringify(connectedWallet,null,2) + "\n";
+	} catch (e) {
+		console.error(e);
+		responseStr += JSON.stringify(e,null,2) + "\n";
+	}
+
+	responseStr += "</pre>\n";
+	
+	responseStr += "<a href=\"/\">Return to home page.</a><br />";
+	responseStr += "</body></html>";
+	res.status(200).send(responseStr);
+});
+
+app.get("/trustee/request-accounts", async function (req, res) {
+
+	var responseStr = "";
+	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><br />";
+	responseStr += "<a href=\"/trustee/links\">Back to Links page.</a><br />";
+
+	responseStr += "<pre>\n";
+
+	// https://docs.thetatoken.org/docs/browser-extension-wallet-developer-guide#request-accounts
+	try {
+		const accounts = await ThetaWalletConnect.requestAccounts();
+		responseStr += JSON.stringify(accounts,null,2) + "\n";
+	} catch (e) {
+		console.error(e);
+		responseStr += JSON.stringify(e,null,2) + "\n";
+	}
+
+	responseStr += "</pre>\n";
+	
+	responseStr += "<a href=\"/\">Return to home page.</a><br />";
+	responseStr += "</body></html>";
+	res.status(200).send(responseStr);
+});
+
+app.get("/trustee/request-payment", async function (req, res) {
+
+	var responseStr = "";
+	responseStr += "<!DOCTYPE HTML><html><head><title>ThetaTrustee</title></head><body><h1>theta-trustee</h1><br />";
+	responseStr += "<a href=\"/trustee/links\">Back to Links page.</a><br />";
+
+	responseStr += "<pre>\n";
+
+	const ten18 = (new BigNumber(10)).pow(18); 
+	const thetaWeiToSend = (new BigNumber(0));
+	const tfuelWeiToSend = (new BigNumber(10)).multipliedBy(ten18);
+	const receiverAddr = Bob; // Your address
+	const txData = {
+		  outputs: [
+			{
+			  address: receiverAddr,
+			  thetaWei: thetaWeiToSend,
+			  tfuelWei: tfuelWeiToSend,
+			}
+		  ]
+		};
+	
+	let tx = new thetajs.transactions.SendTransaction(txData);
+	const txResult = await ThetaWalletConnect.sendTransaction(tx);
+	const hash = txResult.hash;
+
+	responseStr += JSON.stringify(hash,null,2) + "\n";
+
+	responseStr += "</pre>\n";
+	
+	responseStr += "<a href=\"/\">Return to home page.</a><br />";
+	responseStr += "</body></html>";
+	res.status(200).send(responseStr);
 });
 
 app.get("/trustee/copy-me", async function (req, res) {

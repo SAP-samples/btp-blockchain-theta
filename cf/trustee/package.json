@@ -11,6 +11,7 @@
     "@sap/xsenv": "latest",
     "@sap/xssec": "latest",
     "@thetalabs/theta-js": "git://github.com/andrewlunde/theta-js",
+    "@thetalabs/theta-wallet-connect": "latest",
     "assert": "latest",
     "bignumber.js": "^8.1.1",
     "body": "latest",
