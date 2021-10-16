@@ -15,7 +15,6 @@
     "assert": "latest",
     "bignumber.js": "^8.1.1",
     "body": "latest",
-    "class-validator": "^0.9.1",
     "coinbase-pro-node": "^3.0.5",
     "content-type": "latest",
     "date-fns": "^2.22.1",
