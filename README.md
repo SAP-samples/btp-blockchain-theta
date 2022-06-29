@@ -1,4 +1,5 @@
-[![REUSE status](https://api.reuse.software/badge/github.com/SAP-samples/cloud-sfsf-benefits-ext)](https://api.reuse.software/info/github.com/SAP-samples/cloud-sfsf-benefits-ext)
+[![REUSE status](https://api.reuse.software/badge/github.com/SAP-samples/btp-blockchain-theta)](https://api.reuse.software/info/github.com/SAP-samples/btp-blockchain-theta)
+
 
 # BTP Blockchain THETA
 CloudFoundry multi-target application demonstrating NodeJS interface library to Theta blockchain with off-chain micropayment support.
