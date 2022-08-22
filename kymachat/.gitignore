@@ -1,11 +1,10 @@
-# CAP killcds
+# CAP kymachat
 _out
 *.db
 connection.properties
 default-*.json
 gen/
 node_modules/
-package-lock.json
 target/
 
 # Web IDE, App Studio
@@ -26,13 +25,5 @@ mta_archives/
 *.flattened-pom.xml
 
 # IDEs
-.vscode
-.idea
-
-wallet/
-node_modules/
-package-lock.json
-.env
-cf/cchat/
-cf/chat/
-alt/
+# .vscode
+# .idea
